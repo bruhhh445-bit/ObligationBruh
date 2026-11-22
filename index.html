@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<title>ObligationBruh — портфель облигаций</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#EDF0F5">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#EDF0F5;--sf:#fff;--ink:#0E1626;--mu:#657084;--ln:#CFD6E2;--ac:#2A4BFF;--ok:#0F8F67;--bad:#C93A2B;--sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'IBM Plex Serif',Georgia,'Times New Roman',serif;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0A0F1A;--sf:#131B2B;--ink:#E9EEF8;--mu:#8D99AE;--ln:#27324B;--ac:#5877FF;--ok:#35D3A1;--bad:#FF7A6B;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0A0F1A;--sf:#131B2B;--ink:#E9EEF8;--mu:#8D99AE;--ln:#27324B;--ac:#5877FF;--ok:#35D3A1;--bad:#FF7A6B;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg)}
+body{color:var(--ink);font:15px/1.45 var(--sans);padding-top:env(safe-area-inset-top,0px)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.wrap{max-width:520px;margin:0 auto;padding:18px 20px calc(96px + env(safe-area-inset-bottom,0px))}
+h1{font:600 24px/1.2 var(--serif);margin:4px 0 2px;letter-spacing:-.01em}
+h3{font:600 20px/1.2 var(--serif);margin:2px 0 14px}
+.k{color:var(--mu);font-size:13px}
+.money{font-family:var(--serif);font-weight:600;font-variant-numeric:lining-nums tabular-nums;letter-spacing:-.01em}
+.pos{color:var(--ok)}.neg{color:var(--bad)}
+.sec{margin-top:30px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+.sec-h h2{font:600 17px var(--sans);margin:0}
+.link{background:none;border:0;color:var(--ac);font-weight:500;padding:6px 0}
+
+/* ticket: the one loud element */
+.ticket{display:grid;grid-template-columns:104px 1fr;background:var(--ac);color:#fff;border-radius:10px;margin:10px 0 0;
+ -webkit-mask:radial-gradient(circle 9px at 103px 0,#0000 97%,#000) top/100% 51% no-repeat,radial-gradient(circle 9px at 103px 100%,#0000 97%,#000) bottom/100% 51% no-repeat;
+ mask:radial-gradient(circle 9px at 103px 0,#0000 97%,#000) top/100% 51% no-repeat,radial-gradient(circle 9px at 103px 100%,#0000 97%,#000) bottom/100% 51% no-repeat}
+.ticket .stub{padding:20px 0 20px 18px;border-right:2px dashed rgba(255,255,255,.5);line-height:1}
+.ticket .stub b{display:block;font:600 40px var(--serif)}
+.ticket .stub span{display:block;margin-top:6px;font-size:14px}
+.ticket .stub i{display:block;margin-top:3px;font-style:normal;font-size:12px;opacity:.75}
+.ticket .tb{padding:18px 18px 18px 16px;min-width:0}
+.ticket .when{font-size:14px;opacity:.85}
+.ticket .sum{font:600 30px/1.15 var(--serif);margin-top:4px;font-variant-numeric:lining-nums tabular-nums}
+.ticket .nm{font-size:13px;opacity:.85;margin-top:6px;overflow:hidden;text-overflow:ellipsis}
+.empty-t{border:1.5px dashed var(--ln);border-radius:10px;padding:20px;margin-top:10px}
+.empty-t b{display:block;font:600 17px var(--serif);margin-bottom:4px}
+
+.cap{font-size:40px;line-height:1.1;margin:2px 0 4px}
+.delta{font-size:14px;font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)}
+.stats>div{padding:12px 0 12px 12px;border-left:1px solid var(--ln);min-width:0}
+.stats>div:first-child{border-left:0;padding-left:0}
+.stats .money{font-size:16px;margin-top:2px;white-space:nowrap}
+.btns{display:flex;gap:10px;margin-top:16px}
+.btn{flex:1;border:1.5px solid var(--ink);background:none;border-radius:10px;padding:11px 14px;font-weight:600}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+.btn.del{border-color:var(--bad);color:var(--bad)}
+.btn:active{opacity:.7}
+.hint{display:flex;gap:10px;align-items:center;margin-top:18px;padding:12px 0;border-top:1px dashed var(--ln);border-bottom:1px dashed var(--ln);font-size:14px}
+.hint svg{flex:none;color:var(--ac)}.hint button{margin-left:auto;white-space:nowrap}
+
+.row{display:grid;grid-template-columns:46px 1fr auto;gap:14px;align-items:center;padding:13px 0;border-bottom:1px dashed var(--ln);width:100%;text-align:left;background:none;border-top:0;border-left:0;border-right:0}
+.row:last-child{border-bottom:0}
+.dt{text-align:center;line-height:1}
+.dt b{display:block;font:600 22px var(--serif)}.dt span{display:block;margin-top:4px;font-size:12px;color:var(--mu)}
+.rn{min-width:0}.rn b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rn span{font-size:13px;color:var(--mu)}
+.amt{font:600 16px var(--serif);text-align:right;white-space:nowrap;font-variant-numeric:lining-nums tabular-nums}
+.amt small{display:block;font:400 12.5px var(--sans);color:var(--mu);margin-top:2px}
+.row.got .dt b{color:var(--ok)}
+.mh{display:flex;justify-content:space-between;align-items:baseline;margin:26px 0 0;padding-bottom:6px;border-bottom:1.5px solid var(--ink)}
+.mh b{font:600 17px var(--serif)}
+.seg{display:flex;border:1.5px solid var(--ink);border-radius:10px;overflow:hidden;margin:14px 0 4px}
+.seg button{flex:1;background:none;border:0;padding:9px;font-weight:500}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.tot{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--ln)}
+
+/* settings */
+.st{display:flex;align-items:center;gap:8px;font-weight:500;margin:4px 0 2px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mu)}.dot.on{background:var(--ok)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{border:1.5px solid var(--ln);background:none;border-radius:20px;padding:8px 14px}
+.chips button.on{border-color:var(--ac);background:var(--ac);color:#fff}
+.chk{display:flex;gap:10px;align-items:center;margin:14px 0 0;font-size:15px;color:var(--ink)}
+.chk input{width:22px;height:22px;accent-color:var(--ac);margin:0}
+p.note{color:var(--mu);font-size:13.5px;margin:10px 0 0}
+
+label{display:block;color:var(--mu);font-size:13px;margin:14px 0 5px}
+input[type=text],input[type=password],input[type=date],textarea{width:100%;font-size:16px;padding:11px 12px;border:1.5px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--ink)}
+input:focus,textarea:focus{border-color:var(--ac);outline:0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pv{margin-top:16px;padding:12px 0;border-top:1px dashed var(--ln);border-bottom:1px dashed var(--ln)}
+.pv .money{font-size:24px}
+
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--ln);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
+nav button{flex:1;min-width:0;background:none;border:0;color:var(--mu);font-size:11px;padding:6px 0 2px;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button.on{color:var(--ac);font-weight:600}
+nav svg{width:24px;height:24px}
+
+#sh{position:fixed;inset:0;background:rgba(5,8,15,.55);display:none;align-items:flex-end;z-index:20}
+#sh.on{display:flex}
+#shb{background:var(--sf);width:100%;max-width:520px;margin:0 auto;border-radius:18px 18px 0 0;padding:10px 20px calc(22px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow:auto;animation:up .22s ease-out}
+#shb::before{content:"";display:block;width:38px;height:4px;border-radius:2px;background:var(--ln);margin:0 auto 14px}
+@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.acts{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;display:none;max-width:86vw;text-align:center}
+@media(prefers-reduced-motion:reduce){#shb{animation:none}}
+@media(max-width:360px){.ticket{grid-template-columns:92px 1fr}.ticket .stub b{font-size:34px}.cap{font-size:34px}}
+
+/* charts and stats */
+.hd{display:flex;justify-content:space-between;align-items:center}
+.gear{background:none;border:0;color:var(--mu);padding:8px;margin-right:-8px}
+.ch{margin:10px 0 0}.ch svg{width:100%;height:auto;display:block}
+.ch text{fill:var(--mu);font:10.5px var(--sans)}
+.c0{fill:var(--ac)}.c1{fill:var(--ok)}.c2{fill:var(--ln)}
+.ln0{stroke:var(--ac);fill:none;stroke-width:2.6}.ln1{stroke:var(--mu);fill:none;stroke-width:1.6;stroke-dasharray:4 4}.lng{stroke:var(--ok);stroke-width:1.6;stroke-dasharray:5 4}
+.leg{display:flex;gap:16px;font-size:12.5px;color:var(--mu);margin-top:6px;flex-wrap:wrap}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px dashed var(--ln)}.kv:last-child{border-bottom:0}
+.kv span{color:var(--mu)}.kv b{font-weight:600;text-align:right;font-variant-numeric:lining-nums tabular-nums}
+.hb .l{display:flex;justify-content:space-between;gap:10px}.hb .t{height:8px;background:var(--ln);border-radius:4px;margin:6px 0 14px;overflow:hidden}.hb .t i{display:block;height:100%;background:var(--ac)}
+.sc{width:100%;border-collapse:collapse;margin-top:8px}.sc th{font-weight:400;color:var(--mu);font-size:12.5px;text-align:right;padding:6px 0}.sc th:first-child,.sc td:first-child{text-align:left}
+.sc td{padding:10px 0;text-align:right;border-top:1px dashed var(--ln);font-variant-numeric:lining-nums tabular-nums}.sc td b{font-weight:600}
+.yr{display:grid;grid-template-columns:54px 1fr auto;gap:10px;padding:9px 0;border-bottom:1px dashed var(--ln);align-items:baseline}.yr small{color:var(--mu);font-size:12.5px;display:block;text-align:right}
+.ok-t{color:var(--ok);font-weight:500}
+
+/* Final layout safety: prevent content from escaping cards on narrow screens */
+*{box-sizing:border-box}html,body,#app{max-width:100%;min-width:0;overflow-x:hidden}.panel,.hero-card,.chart-card,.metric-card,.settings-card,.bond-card,.empty-t,.ticket,.sec,.row,.rn,.detail-section{min-width:0;max-width:100%}.rn b,.rn span,.bond-name,.bond-ticker,.kv span,.kv b,.note,.metric-card .sub,.metric-card .value,.money,.amt,.ticket .nm{overflow-wrap:anywhere;word-break:normal;min-width:0}.row{grid-template-columns:auto minmax(0,1fr) auto;gap:9px}.row>*{min-width:0}.bond-top{min-width:0}.bond-value{white-space:normal;text-align:right;overflow-wrap:anywhere}.bond-meta{grid-template-columns:repeat(3,minmax(0,1fr))}.toolbar select{min-width:0;max-width:100%}.ch{max-width:100%;overflow:hidden}.ch svg{display:block;width:100%;max-width:100%;height:auto}.kv{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;min-width:0}.kv>*{min-width:0}.kv b{text-align:right;overflow-wrap:anywhere}@media(max-width:380px){.bond-meta{gap:5px}.bond-meta b{font-size:11px}.metric-card{padding:12px}.metric-card .value{font-size:18px}.toolbar{flex-wrap:wrap}.toolbar select{flex:1 1 100%;width:100%}.row{gap:6px}}
+</style>
+<style id="premium-redesign">
+:root{--bg:#f4f6fa;--sf:#fff;--ink:#172033;--mu:#778196;--ln:#e7ebf2;--ac:#315efb;--ac2:#eaf0ff;--ok:#12845d;--bad:#d64a4a;--sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--shadow:0 8px 28px rgba(22,36,66,.055);--radius:20px}
+:root[data-theme=dark]{--bg:#0d1320;--sf:#151e2e;--ink:#edf2fc;--mu:#96a2b8;--ln:#29354a;--ac:#7894ff;--ac2:#202d4c;--ok:#42c99b;--bad:#ff7777;--shadow:0 8px 28px rgba(0,0,0,.18);color-scheme:dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0d1320;--sf:#151e2e;--ink:#edf2fc;--mu:#96a2b8;--ln:#29354a;--ac:#7894ff;--ac2:#202d4c;--ok:#42c99b;--bad:#ff7777;--shadow:0 8px 28px rgba(0,0,0,.18);color-scheme:dark}}
+*{box-sizing:border-box}html,body{background:var(--bg);color:var(--ink)}body{font:15px/1.5 var(--sans);padding-top:env(safe-area-inset-top,0px);-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:24px 22px calc(112px + env(safe-area-inset-bottom,0px))}
+h1{font:750 clamp(25px,4vw,32px)/1.15 var(--sans);letter-spacing:-.045em;margin:0}h2{font-size:17px;letter-spacing:-.02em}h3{font:750 21px/1.2 var(--sans);letter-spacing:-.03em;margin:0 0 16px}.k,.note,.rn span,.amt small{color:var(--mu)}.k{font-size:12px;font-weight:550;letter-spacing:.01em}.money{font-family:var(--sans);font-weight:750;letter-spacing:-.04em;font-variant-numeric:tabular-nums}.cap{font-size:clamp(34px,7vw,48px);margin:7px 0 6px}.pos{color:var(--ok)}.neg{color:var(--bad)}
+.hd{display:flex;align-items:center;justify-content:space-between;margin:3px 0 22px}.gear{border:1px solid var(--ln);background:var(--sf);border-radius:14px;padding:10px;color:var(--mu);box-shadow:var(--shadow)}
+.sec{margin-top:25px}.sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.sec-h h2{margin:0;font-weight:750}.link{border:0;background:none;color:var(--ac);font-weight:650;padding:7px 0}
+.ticket{display:block;background:linear-gradient(125deg,#2449dc,#5277ff);color:white;border-radius:24px;margin:0;padding:23px 24px;box-shadow:0 15px 34px rgba(49,94,251,.2);mask:none;-webkit-mask:none}.ticket .stub{display:none}.ticket .tb{padding:0}.ticket .when{font-size:13px;opacity:.82;font-weight:600}.ticket .sum{font-size:clamp(27px,6vw,36px);font-weight:800;margin-top:5px;letter-spacing:-.04em}.ticket .nm{font-size:13px;opacity:.85;margin-top:8px;white-space:normal}.empty-t{background:var(--sf);border:1px solid var(--ln);border-radius:var(--radius);padding:20px;margin-top:12px;box-shadow:var(--shadow)}.empty-t b{display:block;font-size:17px;margin-bottom:5px}
+.hero-card,.panel,.bond-card,.metric-card,.settings-card,.chart-card{background:var(--sf);border:1px solid var(--ln);border-radius:var(--radius);box-shadow:var(--shadow)}.hero-card{padding:22px}.panel,.settings-card,.chart-card{padding:18px}.metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:13px}.metric-card{padding:15px;min-width:0}.metric-card .value{font-size:19px;margin-top:5px;overflow-wrap:anywhere}.metric-card .sub{font-size:12px;color:var(--mu);margin-top:3px}.metric-card.primary{background:var(--ac2);border-color:transparent}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:17px;border:0}.stats>div{padding:12px;background:rgba(255,255,255,.11);border:0;border-radius:13px;min-width:0}.stats .k{color:inherit;opacity:.75}.stats .money{font-size:15px;margin-top:4px;white-space:normal;overflow-wrap:anywhere}
+.btns,.acts{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}.btn{flex:1;min-height:46px;border:1px solid var(--ln);background:var(--sf);border-radius:14px;padding:11px 15px;font-weight:700;font-size:14px;transition:transform .15s,opacity .15s}.btn:active{transform:scale(.98);opacity:.85}.btn.pri{background:var(--ac);border-color:var(--ac);color:#fff}.btn.del{border-color:rgba(214,74,74,.35);color:var(--bad)}
+.hint{display:flex;gap:10px;align-items:center;margin-top:14px;padding:13px 15px;background:var(--sf);border:1px solid var(--ln);border-radius:15px;font-size:13px}.hint button{margin-left:auto}.row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 2px;border:0;border-bottom:1px solid var(--ln);width:100%;text-align:left;background:none}.row:last-child{border-bottom:0}.dt{text-align:center;line-height:1}.dt b{display:block;font-size:20px;font-weight:800}.dt span{display:block;margin-top:4px;font-size:11px;color:var(--mu)}.rn{min-width:0}.rn b{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rn span{font-size:12px}.amt{font-weight:750;font-size:14px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.amt small{display:block;font-weight:500;font-size:11px;margin-top:3px}.mh{display:flex;justify-content:space-between;align-items:center;margin:22px 0 6px;padding:0;border:0}.mh b{font-size:15px;font-weight:750}.seg{display:flex;background:var(--bg);border:1px solid var(--ln);border-radius:14px;padding:4px;margin:14px 0}.seg button{flex:1;background:none;border:0;border-radius:10px;padding:10px 8px;font-size:13px;font-weight:650;color:var(--mu)}.seg button.on{background:var(--sf);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.07)}.tot{display:flex;justify-content:space-between;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--ln)}
+input[type=text],input[type=password],input[type=date],input[type=number],textarea,select{width:100%;min-height:45px;font-size:15px;padding:11px 13px;border:1px solid var(--ln);border-radius:13px;background:var(--bg);color:var(--ink);outline:none}input:focus,textarea:focus,select:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac2)}label{display:block;color:var(--mu);font-size:12px;font-weight:650;margin:13px 0 6px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pv{margin-top:15px;padding:14px;background:var(--bg);border:1px solid var(--ln);border-radius:14px}.pv .money{font-size:24px}.chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{border:1px solid var(--ln);background:var(--sf);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:650}.chips button.on{border-color:var(--ac);background:var(--ac2);color:var(--ac)}.chk{display:flex;gap:10px;align-items:center;margin:14px 0 0;font-size:14px;color:var(--ink)}.chk input{width:20px;height:20px;accent-color:var(--ac)}p.note{font-size:12.5px;line-height:1.55;margin:10px 0 0}.kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 0;border-bottom:1px solid var(--ln);font-size:13px}.kv:last-child{border-bottom:0}.kv span{color:var(--mu)}.kv b{text-align:right;font-variant-numeric:tabular-nums}.st{display:flex;align-items:center;gap:8px;font-weight:650}.dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}.dot.on{background:var(--ok)}
+nav{position:fixed;left:0;right:0;bottom:0;max-width:900px;margin:0 auto;background:color-mix(in srgb,var(--sf) 92%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--ln);border-bottom:0;border-radius:20px 20px 0 0;display:flex;padding:7px 7px calc(7px + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 -8px 30px rgba(20,35,65,.06)}nav button{flex:1;min-width:0;background:none;border:0;color:var(--mu);font-size:10px;font-weight:600;padding:6px 0 3px;display:flex;flex-direction:column;align-items:center;gap:4px}nav button.on{color:var(--ac)}nav svg{width:21px;height:21px}nav button.on svg{stroke-width:2.3}
+#sh{position:fixed;inset:0;background:rgba(5,10,20,.55);display:none;align-items:flex-end;z-index:20;backdrop-filter:blur(3px)}#sh.on{display:flex}#shb{background:var(--sf);color:var(--ink);width:100%;max-width:620px;margin:0 auto;border:1px solid var(--ln);border-bottom:0;border-radius:25px 25px 0 0;padding:12px 20px calc(24px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto;animation:up .22s ease-out}#shb::before{content:"";display:block;width:40px;height:4px;border-radius:4px;background:var(--ln);margin:0 auto 18px}@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}#toast{bottom:calc(96px + env(safe-area-inset-bottom,0px));border-radius:14px;box-shadow:var(--shadow)}
+.ch{margin:10px 0 0}.ch svg{width:100%;height:auto;display:block;overflow:visible}.ch text{fill:var(--mu);font:10px var(--sans)}.c0{fill:var(--ac)}.c1{fill:var(--ok)}.c2{fill:var(--ln)}.ln0{stroke:var(--ac);fill:none;stroke-width:2.6}.ln1{stroke:var(--mu);fill:none;stroke-width:1.7;stroke-dasharray:4 4}.lng{stroke:var(--ok);stroke-width:1.6;stroke-dasharray:5 4}.leg{display:flex;gap:14px;font-size:12px;color:var(--mu);margin-top:8px;flex-wrap:wrap}.leg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}.hb .l{display:flex;justify-content:space-between;gap:10px;font-size:13px}.hb .t{height:7px;background:var(--ln);border-radius:9px;margin:7px 0 14px;overflow:hidden}.hb .t i{display:block;height:100%;background:var(--ac);border-radius:9px}.sc{width:100%;border-collapse:collapse;margin-top:8px}.sc th{font-weight:500;color:var(--mu);font-size:12px;text-align:right;padding:7px 0}.sc th:first-child,.sc td:first-child{text-align:left}.sc td{padding:11px 0;text-align:right;border-top:1px solid var(--ln);font-size:13px;font-variant-numeric:tabular-nums}.yr{display:grid;grid-template-columns:54px 1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--ln);align-items:baseline}.yr small{color:var(--mu);font-size:11px;display:block;text-align:right}.ok-t{color:var(--ok);font-weight:650}
+.bond-list{display:grid;grid-template-columns:1fr;gap:10px}.bond-card{padding:16px;text-align:left;width:100%;color:var(--ink);cursor:pointer;transition:transform .15s}.bond-card:active{transform:scale(.99)}.bond-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.bond-name{font-size:15px;font-weight:750;line-height:1.3}.bond-ticker{font-size:11px;color:var(--mu);margin-top:3px}.bond-value{font-size:18px;font-weight:800;white-space:nowrap}.bond-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--ln)}.bond-meta span{display:block;font-size:11px;color:var(--mu)}.bond-meta b{display:block;font-size:13px;margin-top:3px;overflow-wrap:anywhere}.toolbar{display:flex;gap:9px;align-items:center;margin:12px 0}.toolbar input{flex:1;min-width:0}.toolbar select{width:auto;max-width:46%}.month-nav{display:flex;align-items:center;justify-content:space-between;margin:12px 0}.month-nav button{border:1px solid var(--ln);background:var(--sf);border-radius:12px;width:40px;height:40px;font-size:20px}.month-nav strong{font-size:15px}.tag{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:var(--ac2);color:var(--ac);font-size:11px;font-weight:700}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.detail-grid .metric-card{box-shadow:none}.detail-section{margin-top:20px}.detail-section h4{margin:0 0 6px;font-size:14px}.chart-card{margin-top:12px}.chart-card .sec-h{margin-bottom:4px}
+@media(min-width:700px){.wrap{padding:32px 30px 120px}.metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.bond-list{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-card{padding:28px}.ticket{padding:28px}.detail-grid{grid-template-columns:repeat(4,minmax(0,1fr))}nav{bottom:14px;border:1px solid var(--ln);border-radius:18px;max-width:720px;padding-bottom:7px}}
+@media(max-width:380px){.wrap{padding-left:15px;padding-right:15px}.metric-card{padding:12px}.metric-card .value{font-size:16px}.stats>div{padding:9px}.stats .money{font-size:12px}.nav button{font-size:9px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* COMPLETE COMPONENT PASS: pension, dialogs, controls, tables and responsive states */
+:root{--focus:rgba(49,94,251,.18)}
+button{ -webkit-appearance:none;appearance:none }
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.wrap{min-height:100svh}
+.sec-h{gap:12px}.sec-h h2{line-height:1.25}
+.toolbar{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:10px;margin:0 0 18px}
+.toolbar input,.toolbar select{min-width:0}
+.bond-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.bond-card{display:block;width:100%;text-align:left;color:var(--ink);padding:18px;border-radius:19px;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+.bond-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ac) 38%,var(--ln));box-shadow:0 12px 30px rgba(20,35,65,.09)}
+.bond-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.bond-name{font-weight:800;font-size:16px;letter-spacing:-.025em;overflow-wrap:anywhere}.bond-ticker{font-size:12px;color:var(--mu);margin-top:4px}.bond-value{font-size:17px;font-weight:800;white-space:nowrap;letter-spacing:-.03em}
+.bond-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--ln)}.bond-meta>div{min-width:0}.bond-meta span,.bond-meta small{display:block;color:var(--mu);font-size:10px;line-height:1.35}.bond-meta b{display:block;font-size:12px;margin-top:5px;overflow-wrap:anywhere}.bond-meta small{margin-top:3px;font-size:10px}
+.month-nav{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 4px;margin-top:8px}.month-nav strong{font-size:16px;font-weight:800;text-transform:capitalize}.month-nav button{width:42px;height:42px;border:1px solid var(--ln);border-radius:13px;background:var(--sf);font-size:25px;line-height:1;color:var(--ink);box-shadow:var(--shadow)}
+.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}.detail-grid .metric-card{padding:13px}.detail-section{margin-top:18px;padding:17px;background:var(--bg);border:1px solid var(--ln);border-radius:17px}.detail-section h4{margin:0 0 9px;font-size:14px;font-weight:800;letter-spacing:-.015em}
+.tag{display:inline-flex;padding:6px 10px;border-radius:999px;background:var(--ac2);color:var(--ac);font-size:11px;font-weight:800;letter-spacing:.06em}
+.sheet-close{position:sticky;top:0;z-index:3;display:block;margin:0 0 8px auto;width:36px;height:36px;border:1px solid var(--ln);border-radius:12px;background:var(--bg);color:var(--mu);font-size:25px;line-height:1;cursor:pointer}
+#shb{padding-top:12px}#shb>h3{padding-right:38px}#shb .acts .btn{min-width:120px}
+#shb label{margin-top:15px}#shb .g2{align-items:start}#shb .pv{margin-top:16px}
+#shb input[type=text],#shb input[type=password],#shb input[type=date],#shb textarea{background:var(--bg)}
+#shb .btn{min-height:48px}
+.settings-card{padding:19px}.settings-card+.settings-card{margin-top:14px}.settings-card h2{font-weight:800;margin:0 0 10px}.settings-card .sec-h{margin-bottom:12px}
+.st{padding:10px 12px;background:var(--bg);border-radius:12px;font-size:13px}
+.chk{padding:9px 0}.chk input{flex:none}
+input[type=checkbox]{accent-color:var(--ac)}
+#toast{max-width:min(90vw,460px);font-weight:650}
+.pension-hero{padding:23px;border-radius:24px;background:radial-gradient(circle at 100% 0,rgba(255,255,255,.2),transparent 38%),linear-gradient(130deg,#2448d9,#5278ff);color:#fff;box-shadow:0 16px 38px rgba(49,94,251,.2)}
+.pension-hero-top{display:flex;justify-content:space-between;align-items:center;gap:12px}.eyebrow{font-size:10px;font-weight:800;letter-spacing:.12em;opacity:.8}.pension-horizon{font-size:11px;font-weight:750;padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.16)}
+.pension-income-label{font-size:13px;opacity:.84;margin-top:24px}.pension-income{font-size:clamp(36px,8vw,50px);line-height:1.12;margin-top:5px;letter-spacing:-.055em;overflow-wrap:anywhere}.pension-real{font-size:16px;font-weight:750;margin-top:8px}.pension-real span{font-size:12px;font-weight:500;opacity:.75}.pension-hero-foot{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:23px;padding-top:16px;border-top:1px solid rgba(255,255,255,.22)}.pension-hero-foot span,.pension-hero-foot b{display:block}.pension-hero-foot span{font-size:11px;opacity:.72}.pension-hero-foot b{font-size:15px;margin-top:4px;overflow-wrap:anywhere}
+.pension-section{margin-top:23px}.assumptions-card{padding:19px;background:var(--sf);border:1px solid var(--ln);border-radius:var(--radius);box-shadow:var(--shadow)}.assumptions-card .sec-h{align-items:flex-start}.assumptions-card .sec-h h2{margin:0}.settings-mark{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:var(--ac2);color:var(--ac);font-size:17px;flex:none}.assumption-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px}.assumption-grid>div{min-width:0}.assumption-grid input{font-variant-numeric:tabular-nums}.assumption-note{display:grid;gap:4px;margin-top:16px;padding:13px 14px;background:var(--bg);border:1px solid var(--ln);border-radius:14px}.assumption-note b{font-size:12px}.assumption-note span{font-size:11.5px;color:var(--mu);line-height:1.5}
+.pension-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.pension-stat{padding:15px;background:var(--sf);border:1px solid var(--ln);border-radius:16px;box-shadow:var(--shadow)}.pension-stat span,.pension-stat b{display:block}.pension-stat span{font-size:11px;color:var(--mu)}.pension-stat b{font-size:17px;margin-top:6px;letter-spacing:-.03em;overflow-wrap:anywhere}
+.goal-panel{padding:16px;background:var(--sf);border:1px solid var(--ln);border-radius:17px;box-shadow:var(--shadow)}.goal-status{font-size:13px;font-weight:750}.goal-status.success{color:var(--ok)}.goal-status.warning{color:var(--bad)}.goal-status.neutral{color:var(--mu)}.goal-track{height:9px;background:var(--ln);border-radius:99px;overflow:hidden;margin-top:13px}.goal-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--ac),var(--ok));max-width:100%}.goal-foot{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:10.5px;color:var(--mu)}.goal-foot b{color:var(--ink)}.goal-extra{margin-top:12px;padding-top:11px;border-top:1px solid var(--ln);font-size:12px;color:var(--mu)}.goal-extra b{color:var(--ink)}
+.pension-breakdown{padding:17px}.breakdown-total{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.breakdown-total b{font-size:21px;letter-spacing:-.04em}.breakdown-total span{font-size:11px;color:var(--mu)}.breakdown-bar{display:flex;height:12px;margin:14px 0;border-radius:99px;background:var(--ln);overflow:hidden}.breakdown-bar i{display:block;background:var(--ac);border-radius:99px}.breakdown-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10.5px;color:var(--mu)}.breakdown-legend span{display:flex;align-items:center;gap:6px}.breakdown-legend i{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}.own-dot{background:var(--ac)}.growth-dot{background:var(--ok)}
+.scenario-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.scenario-card{min-width:0;padding:14px 12px;background:var(--sf);border:1px solid var(--ln);border-radius:16px;box-shadow:var(--shadow)}.scenario-card.featured{border-color:var(--ac);background:var(--ac2)}.scenario-head{display:flex;justify-content:space-between;gap:5px;align-items:center}.scenario-head b{font-size:12px}.scenario-head span{font-size:9px;color:var(--mu)}.scenario-cap{font-size:clamp(13px,2.4vw,17px);margin-top:14px;overflow-wrap:anywhere}.scenario-caption{font-size:9px;color:var(--mu);margin-top:2px}.scenario-income{margin-top:13px;padding-top:10px;border-top:1px solid var(--ln)}.scenario-income b,.scenario-income span{display:block}.scenario-income b{font-size:clamp(12px,2.4vw,16px);overflow-wrap:anywhere}.scenario-income span{font-size:9px;color:var(--mu);margin-top:3px}
+.year-list{background:var(--sf);border:1px solid var(--ln);border-radius:16px;overflow:hidden}.year-row{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--ln)}.year-row:last-child{border-bottom:0}.year-label{font-weight:800;color:var(--ac);font-size:12px}.year-main b,.year-main span,.year-income b,.year-income span{display:block}.year-main b,.year-income b{font-size:12px;overflow-wrap:anywhere}.year-main span,.year-income span{font-size:9px;color:var(--mu);margin-top:2px}.year-income{text-align:right}.pension-disclaimer{padding:13px 14px;background:var(--bg);border-radius:13px}
+.sc,.yr{display:none}
+@media(max-width:620px){.wrap{padding:18px 15px calc(112px + env(safe-area-inset-bottom,0px))}.bond-list{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.scenario-grid{grid-template-columns:1fr}.scenario-card{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px}.scenario-head{grid-column:1/-1}.scenario-cap{margin-top:6px}.scenario-caption{grid-column:1}.scenario-income{grid-column:2;grid-row:2/4;margin:0;padding:0 0 0 12px;border:0;border-left:1px solid var(--ln);text-align:right}.scenario-income b{font-size:15px}.scenario-income span{font-size:9px}.bond-meta{gap:6px}.bond-meta span{font-size:9px}.bond-meta b{font-size:11px}.pension-hero{padding:20px}.assumption-grid{gap:2px 9px}}
+@media(max-width:360px){.wrap{padding-left:12px;padding-right:12px}.pension-hero-foot{gap:8px}.pension-hero-foot b{font-size:13px}.pension-stat{padding:12px}.pension-stat b{font-size:14px}.year-row{grid-template-columns:38px minmax(0,1fr) minmax(0,1fr);gap:7px;padding:10px}.breakdown-legend{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+</style>
+
+<style id="final-polish">
+:root{--radius:22px;--shadow:0 10px 32px rgba(22,35,65,.055);--shadow-hover:0 16px 38px rgba(22,35,65,.10)}
+body{min-height:100vh;background:radial-gradient(ellipse at 50% -18%,rgba(49,94,251,.075),transparent 42%),var(--bg)}
+.wrap{padding-top:clamp(22px,4vw,34px);padding-left:clamp(16px,3vw,26px);padding-right:clamp(16px,3vw,26px);padding-bottom:calc(118px + env(safe-area-inset-bottom,0px))}
+.hd{margin-bottom:22px}.hd h1{font-size:clamp(27px,5vw,34px);letter-spacing:-.055em}.gear{width:44px;height:44px;display:grid;place-items:center;border-radius:15px;transition:.18s}
+.gear:active,.btn:active,.chips button:active,nav button:active{transform:scale(.97)}
+.hero-card{position:relative;overflow:hidden;padding:clamp(18px,4vw,25px);background:linear-gradient(145deg,var(--sf),color-mix(in srgb,var(--ac2) 35%,var(--sf)));border-radius:26px;box-shadow:var(--shadow)}
+.hero-card:after{content:"";position:absolute;right:-70px;top:-110px;width:220px;height:220px;border-radius:50%;border:1px solid color-mix(in srgb,var(--ac) 15%,transparent);box-shadow:0 0 0 22px color-mix(in srgb,var(--ac) 3%,transparent),0 0 0 48px color-mix(in srgb,var(--ac) 2%,transparent);pointer-events:none}
+.hero-card>*{position:relative;z-index:1}.hero-card .cap{font-size:clamp(38px,8vw,52px);line-height:1.05;margin:9px 0 7px}.hero-card .stats{gap:8px}.hero-card .stats>div{background:color-mix(in srgb,var(--ac) 7%,var(--sf));border:1px solid color-mix(in srgb,var(--ac) 8%,var(--ln));padding:12px;border-radius:15px}.hero-card .stats .money{font-size:clamp(13px,2.7vw,16px)}
+.metric-grid{gap:12px}.metric-card{padding:16px;border-radius:18px;transition:transform .18s,box-shadow .18s}.metric-card .value{font-size:clamp(17px,3.4vw,21px);letter-spacing:-.04em}.metric-card .k{font-size:11px;text-transform:uppercase;letter-spacing:.055em}.metric-card.primary{background:linear-gradient(145deg,var(--ac2),color-mix(in srgb,var(--ac2) 50%,var(--sf)))}
+.sec{margin-top:28px}.sec-h{margin-bottom:12px}.sec-h h2{font-size:17px;letter-spacing:-.035em}.panel,.settings-card,.chart-card{border-radius:21px;box-shadow:var(--shadow)}
+.ticket{border-radius:23px;background:linear-gradient(125deg,#2548d8 0%,#4269f4 55%,#7590ff 100%);box-shadow:0 15px 34px rgba(49,94,251,.19);padding:23px 22px;position:relative;overflow:hidden}.ticket:after{content:"";position:absolute;width:180px;height:180px;border:1px solid rgba(255,255,255,.16);border-radius:50%;right:-65px;top:-95px;box-shadow:0 0 0 20px rgba(255,255,255,.045),0 0 0 42px rgba(255,255,255,.035)}.ticket .tb{position:relative;z-index:1}.ticket .sum{font-size:clamp(30px,6vw,39px);letter-spacing:-.05em}.ticket .nm{max-width:90%;line-height:1.45}
+.empty-t{border:1px dashed color-mix(in srgb,var(--ac) 26%,var(--ln));background:linear-gradient(145deg,var(--sf),color-mix(in srgb,var(--ac2) 22%,var(--sf)));border-radius:21px;box-shadow:var(--shadow)}
+.btn{min-height:47px;border-radius:15px;border-width:1px;font-size:14px;box-shadow:0 2px 5px rgba(20,35,65,.025);transition:transform .15s,box-shadow .15s,background .15s}.btn.pri{box-shadow:0 7px 16px rgba(49,94,251,.18)}.btn.pri:hover{box-shadow:0 10px 22px rgba(49,94,251,.25)}.btn.del{background:color-mix(in srgb,var(--bad) 5%,var(--sf))}
+.row{padding:15px 4px;gap:13px;border-bottom:1px solid var(--ln);border-radius:12px;transition:background .15s}.row:active{background:var(--ac2)}.rn b{font-size:14px}.amt{font-size:15px}.mh{border:0;margin:20px 0 5px;padding:0}.mh b{font:750 15px var(--sans)}
+.seg{border:0;background:var(--bg);border-radius:15px;padding:4px;gap:4px}.seg button{border-radius:11px;min-height:42px}.seg button.on{background:var(--sf);color:var(--ac);box-shadow:0 2px 9px rgba(25,40,70,.09)}
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;padding:8px 0}.month-nav strong{font-size:16px;letter-spacing:-.02em}.month-nav button{width:40px;height:40px;border-radius:13px;border:1px solid var(--ln);background:var(--sf);font-size:24px;line-height:1}
+.toolbar{display:grid;grid-template-columns:minmax(0,1fr) 155px;gap:9px;margin:8px 0 20px}.toolbar input,.toolbar select{min-width:0}.bond-list{display:grid;gap:11px}.bond-card{width:100%;text-align:left;color:var(--ink);padding:17px;border-radius:19px;transition:transform .16s,box-shadow .16s,border-color .16s}.bond-card:active{transform:scale(.99);border-color:var(--ac)}.bond-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.bond-name{font-weight:750;font-size:15px;letter-spacing:-.025em}.bond-ticker{font-size:12px;color:var(--mu);margin-top:4px}.bond-value{font-size:19px;font-weight:800;letter-spacing:-.04em;white-space:nowrap}.bond-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:15px;padding-top:13px;border-top:1px solid var(--ln)}.bond-meta span{display:block;color:var(--mu);font-size:10px;text-transform:uppercase;letter-spacing:.035em}.bond-meta b{display:block;font-size:12px;margin-top:4px;overflow-wrap:anywhere}.bond-meta small{display:block;color:var(--ok);font-size:10px;margin-top:3px;line-height:1.25}
+.detail-section{margin-top:22px;padding:16px;border:1px solid var(--ln);border-radius:18px;background:color-mix(in srgb,var(--bg) 55%,var(--sf))}.detail-section h4{font-size:14px;margin:0 0 6px;letter-spacing:-.02em}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:15px}.detail-grid .metric-card{box-shadow:none;padding:13px;border-radius:15px}.detail-grid .metric-card .value{font-size:17px}.kv{font-size:13px;gap:12px}.kv span{line-height:1.4}.kv b{max-width:58%;overflow-wrap:anywhere}
+#sh{align-items:flex-end}#shb{max-width:680px;border-radius:26px 26px 0 0;padding:12px clamp(17px,4vw,26px) calc(26px + env(safe-area-inset-bottom,0px));box-shadow:0 -15px 45px rgba(0,0,0,.14)}#shb h3{font-size:22px;letter-spacing:-.04em}#shb .acts .btn{min-width:calc(50% - 6px)}
+nav{max-width:900px;border-radius:22px 22px 0 0;padding:8px 7px calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 35px rgba(15,30,60,.09)}nav button{font-size:10px;gap:5px;min-height:48px}nav button.on{background:var(--ac2);border-radius:14px}nav svg{width:20px;height:20px}
+.ch{padding:9px 0 0}.ch svg{overflow:visible}.chart-card{padding:12px}.leg{gap:13px}.hb .t{height:9px;border-radius:20px}.hb .t i{border-radius:20px}
+.settings-card{margin-top:13px;padding:18px}.settings-card h2{font-size:16px;margin:0 0 12px}.chips button{min-height:40px}.st{padding:7px 0}.dot{box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 12%,transparent)}
+input[type=text],input[type=password],input[type=date],input[type=number],textarea,select{border-radius:14px;min-height:47px}.pv{border:1px solid var(--ln);background:var(--ac2);border-radius:16px;padding:15px}.pv .money{font-size:26px}
+#toast{border-radius:15px;padding:12px 17px;box-shadow:0 12px 28px rgba(0,0,0,.18)}
+@media(min-width:700px){.wrap{padding-top:34px}.metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.hero-card{padding:28px}.hero-card .stats{max-width:680px}.bond-list{grid-template-columns:repeat(2,minmax(0,1fr))}.sec{margin-top:32px}}
+@media(max-width:420px){.toolbar{grid-template-columns:1fr}.bond-meta{gap:5px}.bond-meta span{font-size:9px}.bond-meta b{font-size:11px}.hero-card .stats>div{padding:10px 8px}.stats .k{font-size:10px}.stats .money{font-size:13px}.btns{gap:7px}.btn{padding:10px 11px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+</style>
+
+
+<style id="complete-redesign">
+:root{--bg:#f4f6fb;--sf:#fff;--ink:#172238;--mu:#71809a;--ln:#e3e8f1;--ac:#5267e8;--ok:#159b78;--bad:#d65c65;--sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--serif:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light}
+:root[data-theme=dark]{--bg:#0c1220;--sf:#151f32;--ink:#eef3ff;--mu:#94a2bb;--ln:#29364d;--ac:#8292ff;--ok:#4bd2a5;--bad:#ff818b;color-scheme:dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]):not([data-theme=dark]){--bg:#0c1220;--sf:#151f32;--ink:#eef3ff;--mu:#94a2bb;--ln:#29364d;--ac:#8292ff;--ok:#4bd2a5;--bad:#ff818b;color-scheme:dark}}
+html,body{background:var(--bg);scroll-behavior:smooth}body{font-size:14px;line-height:1.5;letter-spacing:-.01em}.wrap{max-width:720px;padding:24px 20px calc(110px + env(safe-area-inset-bottom,0px))}
+h1{font-size:29px;font-weight:750;letter-spacing:-.055em;margin:0}.hd{display:flex;align-items:center;justify-content:space-between;margin:4px 0 22px}.gear{width:42px;height:42px;border:1px solid var(--ln);border-radius:14px;background:var(--sf);color:var(--mu);display:grid;place-items:center}
+h2{font-size:16px!important;font-weight:750!important;letter-spacing:-.025em}.sec{margin-top:25px}.sec-h{align-items:center;margin-bottom:12px}.k,.note{color:var(--mu)}.k{font-size:11px;font-weight:700;letter-spacing:.075em;text-transform:uppercase}.money,.amt,.ticket .sum{font-family:var(--sans);font-variant-numeric:tabular-nums;letter-spacing:-.045em;font-weight:750}
+.hero-card{background:linear-gradient(135deg,#3449bd 0%,#6879ef 100%);color:#fff;border:0;border-radius:26px;padding:24px;box-shadow:0 18px 38px rgba(66,83,190,.18);overflow:hidden;position:relative}.hero-card:after{content:"";position:absolute;width:230px;height:230px;border-radius:50%;border:1px solid rgba(255,255,255,.13);right:-90px;top:-120px;box-shadow:0 0 0 25px rgba(255,255,255,.035),0 0 0 55px rgba(255,255,255,.025)}.hero-card .k,.hero-card .stats .k{color:rgba(255,255,255,.72)}.hero-card .cap{font-size:clamp(34px,8vw,48px);font-weight:800;letter-spacing:-.065em;margin:8px 0}.hero-card .delta{color:#fff;font-size:13px}.hero-card .stats{border-color:rgba(255,255,255,.2);position:relative;z-index:1}.hero-card .stats>div{border-color:rgba(255,255,255,.2);padding:12px 8px 2px 12px}.hero-card .stats .money{font-size:15px;color:#fff}.hero-card .stats>div:first-child{padding-left:0}
+.metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric-card,.panel,.settings-card,.chart-card,.bond-card,.empty-t{background:var(--sf);border:1px solid var(--ln);border-radius:18px;padding:16px;box-shadow:0 4px 14px rgba(27,43,77,.035)}.metric-card .value{font-size:22px;margin-top:7px;overflow-wrap:anywhere}.metric-card .sub{font-size:11px;color:var(--mu);margin-top:5px}.metric-card.primary{background:var(--ac);border-color:var(--ac);color:#fff}.metric-card.primary .k,.metric-card.primary .sub{color:rgba(255,255,255,.75)}
+.panel{padding:14px 16px}.kv{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:11px 0;border-bottom:1px solid var(--ln);font-size:13px}.kv:last-child{border-bottom:0}.kv>span{color:var(--mu)}.kv>b{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.pos{color:var(--ok)!important}.neg{color:var(--bad)!important}
+.ticket{display:block;background:linear-gradient(135deg,#14233d,#263b61);border-radius:20px;margin:0;padding:18px;color:#fff;mask:none;-webkit-mask:none;box-shadow:0 12px 28px rgba(16,31,59,.14)}.ticket .stub{display:none}.ticket .tb{padding:0}.ticket .when{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.7}.ticket .sum{font-size:32px;margin:7px 0}.ticket .nm{font-size:12px;opacity:.72}.empty-t{padding:22px}.empty-t b{font-size:17px;display:block;margin-bottom:5px}.note{font-size:12px;line-height:1.55}
+.btns,.acts{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}.btn{border:1px solid var(--ln);background:var(--sf);color:var(--ink);border-radius:13px;padding:12px 15px;font-size:13px;font-weight:700;min-height:44px;transition:transform .15s,filter .15s}.btn:active,nav button:active,.gear:active{transform:scale(.97)}.btn.pri{background:var(--ac);border-color:var(--ac);color:#fff;box-shadow:0 7px 16px rgba(82,103,232,.18)}.btn.del{border-color:rgba(214,92,101,.35);background:rgba(214,92,101,.07);color:var(--bad)}.btns .btn,.acts .btn{flex:1}.link{color:var(--ac);font-size:12px;font-weight:700}.hint{background:var(--sf);border:1px solid var(--ln);border-radius:14px;padding:12px}
+.row{border:0;border-bottom:1px solid var(--ln);padding:14px 2px;grid-template-columns:42px minmax(0,1fr) auto;gap:12px}.row:last-child{border:0}.dt{background:var(--bg);border-radius:12px;padding:7px 2px}.dt b{font-size:19px}.rn b{font-size:13px}.rn span{font-size:11px}.amt{font-size:14px}.amt small{font-size:10px}.mh{border:0;margin:18px 0 2px;padding:0}.mh b{font:700 13px var(--sans)}
+.seg{border:0;background:var(--bg);border-radius:13px;padding:4px;gap:4px;margin:14px 0}.seg button{border-radius:10px;padding:10px 8px;font-size:12px;color:var(--mu)}.seg button.on{background:var(--sf);color:var(--ac);box-shadow:0 2px 7px rgba(20,35,65,.1)}
+.month-nav{display:flex;justify-content:space-between;align-items:center;margin:16px 0 6px}.month-nav button{width:38px;height:38px;border:1px solid var(--ln);border-radius:12px;background:var(--sf);font-size:22px;color:var(--ink)}.month-nav strong{font-size:15px}
+.toolbar{display:grid;grid-template-columns:minmax(0,1fr) 145px;gap:8px;margin-bottom:18px}.toolbar input,.toolbar select{min-width:0;width:100%;background:var(--sf);border:1px solid var(--ln);border-radius:13px;padding:12px;font-size:13px;color:var(--ink)}.bond-list{display:grid;gap:10px;margin-top:12px}.bond-card{text-align:left;width:100%;color:var(--ink);transition:transform .15s}.bond-card:active{transform:scale(.99)}.bond-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.bond-name{font-size:15px;font-weight:750;letter-spacing:-.025em}.bond-ticker{font-size:11px;color:var(--mu);margin-top:4px}.bond-value{font-size:17px;font-weight:800;white-space:nowrap}.bond-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--ln);margin-top:14px;padding-top:12px}.bond-meta span{display:block;color:var(--mu);font-size:10px}.bond-meta b{display:block;font-size:12px;margin-top:3px}.bond-meta small{font-size:10px;display:block;margin-top:3px}
+nav{background:color-mix(in srgb,var(--sf) 94%,transparent);backdrop-filter:blur(18px);border-top:1px solid var(--ln);padding:8px 7px calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 24px rgba(20,35,65,.06)}nav button{font-size:10px;font-weight:650;gap:4px;padding:5px 0;color:var(--mu)}nav button.on{color:var(--ac)}nav svg{width:21px;height:21px}nav button.on svg{stroke-width:2.3}
+label{font-size:11px;font-weight:700;letter-spacing:.02em;margin:14px 0 6px}input[type=text],input[type=password],input[type=date],textarea,select{background:var(--bg);border:1px solid var(--ln);border-radius:12px;padding:12px;font-size:14px}input:focus,textarea:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 14%,transparent)}.g2{gap:10px}.chips{gap:7px}.chips button{border:1px solid var(--ln);border-radius:11px;padding:9px 12px;font-size:12px;font-weight:650;background:var(--sf)}.chips button.on{background:var(--ac);border-color:var(--ac);color:#fff}.chk{font-size:13px}.chk input{accent-color:var(--ac)}
+.settings-card{padding:18px}.settings-card h2{margin:0 0 12px}.st{font-size:12px}.dot{width:8px;height:8px}.chart-card{padding:14px;overflow:hidden}.chart-card svg{max-width:100%;height:auto}.hb{display:grid;gap:14px}.hb .l{font-size:12px;display:flex;justify-content:space-between;gap:8px}.hb .t{height:8px;border-radius:10px;background:var(--bg);overflow:hidden;margin-top:7px}.hb .t i{display:block;height:100%;border-radius:10px;background:linear-gradient(90deg,var(--ac),#91a0ff)}
+#sh{background:rgba(8,15,29,.58);backdrop-filter:blur(5px);align-items:flex-end}#shb{background:var(--sf);border:1px solid var(--ln);border-bottom:0;border-radius:25px 25px 0 0;max-width:720px;padding:12px 20px calc(26px + env(safe-area-inset-bottom,0px));box-shadow:0 -20px 60px rgba(0,0,0,.16)}#shb::before{width:42px;height:5px;border-radius:8px;background:var(--ln)}#shb h3{font-size:22px;letter-spacing:-.04em;margin:6px 0 16px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0}.detail-grid .metric-card{padding:13px}.detail-grid .value{font-size:18px}.detail-section{background:var(--bg);border-radius:16px;padding:14px;margin-top:12px}.detail-section h4{margin:0 0 7px;font-size:13px}.tag{display:inline-flex;background:color-mix(in srgb,var(--ac) 12%,transparent);color:var(--ac);padding:6px 9px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.08em}
+#toast{border-radius:13px!important;box-shadow:0 8px 28px rgba(0,0,0,.2)}
+@media(min-width:600px){.wrap{padding-left:28px;padding-right:28px}.metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.hero-card{padding:28px}.bond-list{grid-template-columns:repeat(2,minmax(0,1fr))}nav{left:50%;right:auto;transform:translateX(-50%);width:min(100%,720px);border-left:1px solid var(--ln);border-right:1px solid var(--ln);border-radius:18px 18px 0 0}}
+@media(max-width:390px){.wrap{padding-left:14px;padding-right:14px}.toolbar{grid-template-columns:1fr}.hero-card{padding:19px}.hero-card .stats>div{padding-left:7px}.hero-card .stats .money{font-size:13px}.bond-meta{gap:4px}.bond-meta b{font-size:11px}}
+.hero-card .stats>div{background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.2)!important}
+@media(max-width:390px){.hero-card .stats>div{padding:9px 7px!important}}
+</style>
+
+</head><body>
+<main class="wrap" id="app"></main>
+<nav id="nav"></nav>
+<div id="sh"><div id="shb"></div></div>
+<div id="toast"></div>
+<script>
+const tg=window.Telegram&&Telegram.WebApp;
+const LK='bonds_tg_v1',OLD='bonds_v1',TK='bonds_tg_token',CK='bonds_tg_chat';
+const SEED={"pos":[],"log":[],"ts":0};
+const OWNER=0; /* сюда можно вписать свой Telegram ID: для всех остальных экран будет пустым */
+const uid_=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:0;
+const LOCKED=OWNER&&uid_!==OWNER;
+let S,tab='home',pTab='soon';
+const $=s=>document.querySelector(s);
+const n=v=>parseFloat(String(v).replace(/\s/g,'').replace(',','.'))||0;
+const r2=x=>Math.round(x*100)/100;
+const f=x=>r2(x).toLocaleString('ru-RU',{maximumFractionDigits:2})+'\u00a0₽';
+const sg=x=>(x>=0?'+':'−')+f(Math.abs(x));
+const pc=x=>(Math.abs(x)*100).toFixed(1).replace('.',',')+'%';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const MG=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const MF=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const WD=['вс','пн','вт','ср','чт','пт','сб'];
+const D=s=>new Date(s+'T00:00:00');
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>iso(new Date());
+const diff=d=>Math.round((D(d)-D(today()))/864e5);
+const plural=(k,a,b,c)=>{k=Math.abs(k)%100;const m=k%10;return k>10&&k<20?c:m>1&&m<5?b:m===1?a:c};
+const when=d=>{const k=diff(d);return k<=0?'сегодня':k===1?'завтра':'через '+k+' '+plural(k,'день','дня','дней')};
+const dLong=d=>D(d).getDate()+' '+MG[D(d).getMonth()];
+const dShort=d=>D(d).toLocaleDateString('ru-RU');
+const clone=o=>JSON.parse(JSON.stringify(o));
+
+/* ---------- dates ---------- */
+function addM(s,m){const d=D(s),day=d.getDate(),t=new Date(d.getFullYear(),d.getMonth()+m,1),last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();t.setDate(Math.min(day,last));return iso(t)}
+function genDates(first,freq,mat){const st=freq===4?3:freq===12?1:6,out=[];if(!first)return out;for(let i=0;i<80;i++){const d=addM(first,i*st);if(mat&&d>mat)break;out.push(d);if(!mat&&out.length>=20)break}return out}
+function settleTs(w){const x=new Date(Date.UTC(w.getFullYear(),w.getMonth(),w.getDate())),wk=()=>[0,6].includes(x.getUTCDay());while(wk())x.setUTCDate(x.getUTCDate()+1);x.setUTCDate(x.getUTCDate()+1);while(wk())x.setUTCDate(x.getUTCDate()+1);return x.getTime()}
+const nextCp=p=>(p.dates||[]).find(d=>d>today())||'';
+function accrued(p){const nx=nextCp(p);if(!nx||!p.coupon)return 0;const L=p.freq||2,per=L===2?182:L>=12?30:Math.round(365/L),U=s=>Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10)),st=settleTs(new Date()),d=Math.min(per,Math.max(0,(st-(U(nx)-per*864e5))/864e5));return r2(r2(p.coupon*d/per)*p.qty)}
+
+/* ---------- state ---------- */
+function fix(){S.pos=S.pos||[];S.log=S.log||[];S.sent=S.sent||{};S.notify=Object.assign({on:true,credited:true,lead:1},S.notify);delete S.goal;delete S.tax;S.pension=Object.assign({monthly:5000,years:15,rate:0,infl:7,taxRate:13,goal:100000},S.pension);
+ S.pos.forEach(p=>{p.freq=p.freq||(p.months||[]).length||2;p.coupon=p.coupon||0;if(!p.dates||!p.dates.length){const y=new Date().getFullYear(),a=[];(p.months||[]).forEach(m=>{for(let i=0;i<3;i++)a.push(iso(new Date(y+i,m-1,1)))});p.dates=a.sort().filter(d=>!p.maturity||d<=p.maturity)}p.proc=p.proc||today()})}
+function load(){let j=null;try{j=localStorage.getItem(LK)||localStorage.getItem(OLD)}catch(e){}
+ try{S=j?JSON.parse(j):clone(SEED)}catch(e){S=clone(SEED)}fix()}
+let st=null;
+function save(){S.ts=Date.now();try{localStorage.setItem(LK,JSON.stringify(S))}catch(e){}clearTimeout(st);st=setTimeout(cloudSave,900)}
+const CS=tg&&tg.CloudStorage&&tg.isVersionAtLeast&&tg.isVersionAtLeast('6.9')?tg.CloudStorage:null;
+function cloudSave(){if(!CS)return;try{const j=JSON.stringify(S),parts=[];for(let i=0;i<j.length;i+=3000)parts.push(j.slice(i,i+3000));parts.forEach((x,i)=>CS.setItem('d'+i,x));CS.setItem('dn',String(parts.length))}catch(e){}}
+function cloudLoad(cb){let done=false;const end=v=>{if(!done){done=true;cb(v)}};setTimeout(()=>end(null),2500);
+ try{CS.getItem('dn',(e,v)=>{const k=+v;if(e||!k)return end(null);const keys=[...Array(k)].map((_,i)=>'d'+i);CS.getItems(keys,(e2,o)=>{try{end(JSON.parse(keys.map(x=>o[x]).join('')))}catch(x){end(null)}})})}catch(e){end(null)}}
+
+/* ---------- money ---------- */
+const sm=t=>S.log.filter(e=>e.type===t).reduce((a,e)=>a+e.amount,0);
+// External purchases are capital contributions too, even when they were not paid from the tracked cash balance.
+const externalBuys=()=>S.log.filter(e=>e.type==='buy'&&e.ext).reduce((a,e)=>a+e.amount,0);
+const netContributions=()=>r2(sm('deposit')-sm('withdraw')+externalBuys());
+const bal=()=>r2(sm('deposit')+sm('coupon')+sm('sell')-sm('withdraw')-S.log.filter(e=>e.type==='buy'&&!e.ext).reduce((a,e)=>a+e.amount,0));
+const mkt=p=>(p.last||p.price)*p.qty;
+const capNow=()=>bal()+S.pos.reduce((a,p)=>a+mkt(p)+accrued(p),0);
+const yearly=()=>S.pos.reduce((a,p)=>a+p.coupon*p.freq*p.qty,0);
+const ev=()=>S.pos.flatMap(p=>(p.dates||[]).filter(d=>d>today()&&(!p.maturity||d<=p.maturity)).map(d=>({d,p,a:r2(p.coupon*p.qty)}))).sort((a,b)=>a.d.localeCompare(b.d)||a.p.name.localeCompare(b.p.name));
+
+/* coupons credit to the balance on their date; bonds are redeemed at maturity */
+function auto(){const t=today(),got=[];let ch=false;
+ [...S.pos].forEach(p=>{
+  (p.dates||[]).filter(d=>d>p.proc&&d<=t&&(!p.maturity||d<=p.maturity)).forEach(d=>{const a=r2(p.coupon*p.qty),id=uid();S.log.push({id,date:d,type:'coupon',amount:a,pid:p.id,note:p.name,auto:true});got.push({id,name:p.name,date:d,amount:a});ch=true});
+  if(p.maturity&&p.maturity>p.proc&&p.maturity<=t){S.log.push({id:uid(),date:p.maturity,type:'sell',red:1,amount:r2(p.nominal*p.qty),pid:p.id,bondName:p.name,qty:p.qty,note:'Погашение: '+p.name});S.pos=S.pos.filter(x=>x.id!==p.id);ch=true}
+  else if(p.proc!==t){p.proc=t;ch=true}});
+ if(ch)save();return got}
+
+/* ---------- telegram notifications ---------- */
+const token=()=>{try{return(localStorage.getItem(TK)||'').trim()}catch(e){return''}};
+const chatId=()=>{try{const m=localStorage.getItem(CK);if(m)return m.trim()}catch(e){}return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?String(tg.initDataUnsafe.user.id):''};
+const ready=()=>!!(token()&&chatId());
+async function send(text){if(!ready())return{ok:false,err:'Нужны токен бота и чат'};
+ try{const r=await fetch('https://api.telegram.org/bot'+token()+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId(),text,parse_mode:'HTML',disable_web_page_preview:true})}),j=await r.json();return j.ok?{ok:true}:{ok:false,err:j.description||'Telegram отклонил сообщение'}}catch(e){return{ok:false,err:'Нет связи с Telegram'}}}
+async function runNotify(credited){const N=S.notify;if(!N.on||!ready())return;let ch=false;
+ if(N.credited&&credited.length){const fresh=credited.filter(c=>!S.sent['c'+c.id]);
+  if(fresh.length){const tot=fresh.reduce((a,c)=>a+c.amount,0),r=await send('💰 <b>Купон пришёл</b>\n'+fresh.map(c=>esc(c.name)+': <b>+'+f(c.amount)+'</b>').join('\n')+(fresh.length>1?'\nВсего: <b>+'+f(tot)+'</b>':'')+'\nНа счёте: '+f(bal()));
+   if(r.ok){fresh.forEach(c=>S.sent['c'+c.id]=1);ch=true}}}
+ if(N.lead>0){const byD={};ev().filter(e=>diff(e.d)<=N.lead&&!S.sent[e.p.id+'_'+e.d]).forEach(e=>(byD[e.d]=byD[e.d]||[]).push(e));
+  for(const d of Object.keys(byD).sort()){const L=byD[d],tot=L.reduce((a,e)=>a+e.a,0),r=await send('🗓 <b>Купон '+when(d)+'</b>, '+dLong(d)+'\n'+L.map(e=>esc(e.p.name)+': <b>+'+f(e.a)+'</b>').join('\n')+(L.length>1?'\nИтого: <b>+'+f(tot)+'</b>':''));
+   if(r.ok){L.forEach(e=>S.sent[e.p.id+'_'+e.d]=1);ch=true}}}
+ if(ch){save()}}
+
+/* ---------- ui helpers ---------- */
+const hap=(t='light')=>{try{tg.HapticFeedback.impactOccurred(t)}catch(e){}};
+let tt=null;function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',2600)}
+const ask=(m,cb)=>{if(tg&&tg.showConfirm&&tg.isVersionAtLeast&&tg.isVersionAtLeast('6.2'))tg.showConfirm(m,ok=>ok&&cb());else if(confirm(m))cb()};
+function sheet(h){$('#shb').innerHTML='<button class="sheet-close" data-a="close" aria-label="Закрыть окно" type="button">×</button>'+h;$('#sh').classList.add('on');try{tg.BackButton.show()}catch(e){}}
+function closeSheet(){$('#sh').classList.remove('on');try{tg.BackButton.hide()}catch(e){}}
+$('#sh').addEventListener('click',e=>{if(e.target.id==='sh')closeSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+const inp=(id,l,v='',t='text',m='decimal')=>`<div><label for="${id}">${l}</label><input id="${id}" type="${t}" ${t==='text'?`inputmode="${m}" autocomplete="off"`:''} value="${esc(v)}"></div>`;
+const IC={home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',pay:'<path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/>',bonds:'<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/>',set:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M6 15v4"/>',bell:'<path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4zM10 21h4"/>',stats:'<path d="M4 20V11M10 20V4M16 20v-7M21 20H3"/>',pen:'<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>'};
+const svg=(k,s)=>`<svg viewBox="0 0 24 24" ${s?`width="${s}" height="${s}"`:''} fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>`;
+
+/* ---------- views ---------- */
+const hd=t=>`<div class="hd"><h1>${t}</h1><button class="gear" data-a="go" data-id="set" aria-label="Настройки">${svg('set',24)}</button></div>`;
+const evRow=(e,i)=>`<div class="row"><div class="dt"><b class="money">${D(e.d).getDate()}</b><span>${MG[D(e.d).getMonth()].slice(0,3)}</span></div><div class="rn"><b>${esc(e.p.name)}</b><span>${e.kind==='redemption'?'Погашение номинала':e.p.qty+' шт. · '+when(e.d)}</span></div><div class="amt pos">+${f(e.a)}</div></div>`;
+
+function home(){const E=ev(),B=bal(),cap=capNow(),dep=sm('deposit'),wd=sm('withdraw'),net=dep-wd,g=cap-net,cp=sm('coupon');
+ let hero;
+ if(E.length){const d=E[0].d,same=E.filter(e=>e.d===d),sum=same.reduce((a,e)=>a+e.a,0);
+  hero=`<div class="ticket"><div class="stub"><b class="money">${D(d).getDate()}</b><span>${MG[D(d).getMonth()]}</span><i>${WD[D(d).getDay()]}</i></div><div class="tb"><div class="when">${when(d)}</div><div class="sum">+${f(sum)}</div><div class="nm">${same.map(e=>esc(e.p.name)).join(', ')}</div></div></div>`}
+ else hero=`<div class="empty-t"><b>Купонов пока нет</b><span class="k">Добавьте облигацию — выплаты появятся здесь.</span><div class="btns"><button class="btn pri" data-a="add">Добавить облигацию</button></div></div>`;
+ const first=E.length?E.filter(e=>e.d===E[0].d).length:0,rest=E.slice(first,first+5);
+ return `${hd('Купоны ОФЗ')}${hero}
+ ${ready()?'':`<div class="hint">${svg('bell',22)}<span>Уведомления в Telegram выключены</span><button class="link" data-a="go" data-id="set">Подключить</button></div>`}
+ <div class="sec"><div class="k">Капитал</div><div class="money cap">${f(cap)}</div>
+ ${net>0?`<div class="delta ${g>=0?'pos':'neg'}">${g>=0?'▲':'▼'} ${f(Math.abs(g))} (${pc(g/net)}) к вложенному</div>`:''}
+ <div class="stats"><div><div class="k">На счёте</div><div class="money">${f(B)}</div></div><div><div class="k">Получено</div><div class="money">${f(cp)}</div></div><div><div class="k">Купоны в год</div><div class="money">${f(yearly())}</div></div></div>
+ <div class="btns"><button class="btn pri" data-a="dep">Пополнить</button><button class="btn" data-a="wd">Вывести</button></div>
+ <div style="margin-top:6px"><button class="link" data-a="hist">История счёта</button></div></div>
+ ${rest.length?`<div class="sec"><div class="sec-h"><h2>Дальше</h2><button class="link" data-a="go" data-id="pay">Все выплаты</button></div>${rest.map(evRow).join('')}</div>`:''}`}
+
+function pay(){let body;
+ if(pTab==='soon'){const E=ev().filter(e=>diff(e.d)<=366);if(!E.length)body='<p class="note">Ожидаемых выплат нет.</p>';
+  else{const g={};E.forEach(e=>(g[e.d.slice(0,7)]=g[e.d.slice(0,7)]||[]).push(e));
+   body=Object.keys(g).sort().map(k=>`<div class="mh"><b>${MF[+k.slice(5)-1]} ${k.slice(0,4)}</b><span class="money">+${f(g[k].reduce((a,e)=>a+e.a,0))}</span></div>${g[k].map(evRow).join('')}`).join('')}}
+ else{const L=S.log.filter(e=>e.type==='coupon').sort((a,b)=>b.date.localeCompare(a.date));
+  body=L.length?`<div class="tot"><span class="k">Получено всего</span><b class="money pos">+${f(sm('coupon'))}</b></div>`+L.map(e=>`<div class="row got"><div class="dt"><b class="money">${D(e.date).getDate()}</b><span>${MG[D(e.date).getMonth()].slice(0,3)}</span></div><div class="rn"><b>${esc(e.note||'Купон')}</b><span>зачислен на счёт</span></div><div class="amt pos">+${f(e.amount)}</div></div>`).join(''):'<p class="note">Купоны появятся здесь, когда придёт первая выплата.</p>'}
+ return `${hd('Выплаты')}<div class="seg"><button class="${pTab==='soon'?'on':''}" data-a="pt" data-id="soon">Ожидаются</button><button class="${pTab==='got'?'on':''}" data-a="pt" data-id="got">Получено</button></div>${body}`}
+
+function bonds(){const rows=S.pos.map(p=>`<button class="row" style="grid-template-columns:1fr auto" data-a="bond" data-id="${p.id}"><div class="rn"><b>${esc(p.name)}</b><span>${p.qty} шт.${p.maturity?', до '+D(p.maturity).getFullYear()+' г.':''}</span></div><div class="amt">${f(mkt(p))}<small class="pos">+${f(p.coupon*p.freq*p.qty)} в год</small></div></button>`).join('');
+ return `${hd('Облигации')}<div style="text-align:right"><button class="link" data-a="add">Добавить облигацию</button></div>${rows||'<p class="note">Портфель пуст. Добавьте первую облигацию.</p>'}`}
+
+function settings(){const N=S.notify,ok=ready(),cid=chatId(),inTg=!!(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user);
+ return `<h1>Настройки</h1>
+ <div class="sec"><div class="sec-h"><h2>Уведомления в Telegram</h2></div>
+ <div class="st"><span class="dot ${ok&&N.on?'on':''}"></span>${!ok?'Не подключено':N.on?'Включены':'Выключены'}</div>
+ <label for="tk">Токен бота (от @BotFather)</label><input id="tk" type="password" autocomplete="off" placeholder="${token()?'токен сохранён на этом устройстве':'123456:ABC…'}">
+ ${inTg?`<p class="note">Ваш Telegram ID: ${uid_}. Сообщения придут в этот чат (${esc(cid)}). Откройте бота и нажмите Start, иначе Telegram не даст ему писать.</p>`:inp('ci','ID чата',cid)}
+ <label>Предупреждать о купоне заранее</label><div class="chips">${[[0,'Не нужно'],[1,'За 1 день'],[3,'За 3 дня']].map(([v,t])=>`<button data-a="lead" data-id="${v}" class="${N.lead===v?'on':''}">${t}</button>`).join('')}</div>
+ <label class="chk"><input type="checkbox" id="nc" ${N.credited?'checked':''}> Сообщать, когда купон пришёл</label>
+ <label class="chk"><input type="checkbox" id="non" ${N.on?'checked':''}> Уведомления включены</label>
+ <div class="acts"><button class="btn pri" data-a="savetg">Сохранить</button><button class="btn" data-a="testtg">Отправить тест</button></div>
+ <p class="note">Сообщения уходят, когда вы открываете приложение: оно проверяет, какие купоны уже пришли или скоро придут. Токен хранится только на этом устройстве.</p></div>
+ <div class="sec"><div class="sec-h"><h2>Данные</h2></div><div class="acts" style="margin-top:8px"><button class="btn" data-a="exp">Скопировать данные</button><button class="btn" data-a="imp">Восстановить</button></div>
+ <p class="note">${CS?'Данные дублируются в облако Telegram и доступны на всех ваших устройствах.':'Данные хранятся в этом браузере. Скопируйте их, чтобы перенести на другое устройство.'}</p></div>`}
+
+function render(){const y=scrollY;$('#app').innerHTML={home,pay,bonds,stats:statsView,pen:pensionView,set:settings}[tab]();
+ $('#nav').innerHTML=[['home','Главная'],['pay','Выплаты'],['bonds','Облигации'],['stats','Статистика'],['pen','Пенсия']].map(([k,l])=>`<button data-a="go" data-id="${k}" class="${tab===k?'on':''}" aria-label="${l}">${svg(k)}${l}</button>`).join('');scrollTo(0,y)}
+
+/* ---------- forms ---------- */
+function moneyForm(type){const dep=type==='deposit';sheet(`<h3>${dep?'Пополнить счёт':'Вывести со счёта'}</h3>${inp('ma','Сумма, ₽','')}${inp('md','Дата',today(),'date')}<div class="acts"><button class="btn pri" data-a="savemoney" data-id="${type}">${dep?'Пополнить':'Вывести'}</button></div>`)}
+function saveMoney(type){const a=n($('#ma').value),date=$('#md').value||today();if(!Number.isFinite(a)||a<=0)return toast('Введите сумму больше нуля');if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(D(date).getTime())||iso(D(date))!==date)return toast('Проверьте дату операции');if(type==='withdraw'&&a>bal()+.005)return toast('На счёте только '+f(bal()));
+ S.log.push({id:uid(),date,type,amount:r2(a),note:type==='deposit'?'Пополнение':'Вывод'});save();closeSheet();render();hap('medium')}
+function history(){const T={deposit:'Пополнение',withdraw:'Вывод',buy:'Покупка',sell:'Продажа',coupon:'Купон'},L=[...S.log].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,40);
+ sheet(`<h3>История счёта</h3><div class="tot"><span class="k">Сейчас на счёте</span><b class="money">${f(bal())}</b></div>`+(L.map(e=>{const plus=['deposit','coupon','sell'].includes(e.type),ext=e.type==='buy'&&e.ext;
+  return `<div class="row" style="grid-template-columns:1fr auto;padding:10px 0"><div class="rn"><b>${e.red?'Погашение':T[e.type]}${e.bondName?': '+esc(e.bondName):''}${e.qty?' ×'+e.qty:''}</b><span>${dShort(e.date)}${ext?', не с баланса':''}</span></div><div class="amt ${plus?'pos':''}">${plus?'+':'−'}${f(e.amount)}</div></div>`}).join('')||'<p class="note">Операций пока нет.</p>'))}
+
+function bondSheet(id){const p=S.pos.find(x=>x.id===id);if(!p)return;
+ sheet(`<h3>${esc(p.name)}</h3><div class="stats" style="margin-top:0"><div><div class="k">Штук</div><div class="money">${p.qty}</div></div><div><div class="k">Средняя цена</div><div class="money">${f(p.price)}</div></div><div><div class="k">Сейчас</div><div class="money">${f(p.last||p.price)}</div></div></div>
+ <p class="note">Следующий купон: ${nextCp(p)?dLong(nextCp(p))+', +'+f(p.coupon*p.qty):'нет'}.</p>
+ <div class="acts"><button class="btn pri" data-a="buy" data-id="${id}">Докупить</button><button class="btn" data-a="edit" data-id="${id}">Изменить</button><button class="btn del" data-a="del" data-id="${id}">Удалить</button></div>`)}
+
+function preview(ids,out){const upd=()=>{const [q,p,nk,cm]=ids.map(x=>n($('#'+x).value)),clean=q*p;$('#pvt').textContent=f(clean+nk+cm);$('#pvb').textContent='Облигации '+f(clean)+', НКД '+f(nk)+', комиссия '+f(cm)};ids.forEach(x=>$('#'+x).addEventListener('input',upd));upd()}
+function buyForm(id){const p=S.pos.find(x=>x.id===id);
+ sheet(`<h3>Докупить ${esc(p.name)}</h3><div class="k">На счёте ${f(bal())}</div><div class="g2">${inp('bq','Штук','1','text','numeric')}${inp('bp','Цена за штуку, ₽',p.last||p.price)}${inp('bn','НКД за сделку, ₽','0')}${inp('bc','Комиссия, ₽','0')}</div>
+ <div class="pv"><div class="k">К оплате</div><div class="money" id="pvt">—</div><div class="k" id="pvb"></div></div>
+ <div class="acts"><button class="btn pri" data-a="savebuy" data-id="${id}">Купить</button></div>`);preview(['bq','bp','bn','bc'])}
+function saveBuy(id){const auto_=auto(),p=S.pos.find(x=>x.id===id),q=n($('#bq').value),pr=n($('#bp').value),nk=n($('#bn').value),cm=n($('#bc').value);
+ if(!p)return toast('Облигация не найдена');if(!Number.isInteger(q)||q<=0||pr<=0||nk<0||cm<0)return toast('Проверьте количество, цену, НКД и комиссию');const clean=r2(q*pr),total=r2(clean+nk+cm);
+ const doit=()=>{p.price=(p.price*p.qty+pr*q)/(p.qty+q);p.qty+=q;p.last=pr;S.log.push({id:uid(),date:today(),type:'buy',amount:total,cleanAmount:clean,nkd:nk,commission:cm,pid:p.id,bondName:p.name,qty:q,price:pr,note:p.name+' ×'+q});save();closeSheet();render();hap('medium')};
+ if(total>bal()+.005)ask('На счёте не хватает '+f(total-bal())+'. Всё равно записать покупку?',doit);else doit()}
+
+function bondForm(id){const p=S.pos.find(x=>x.id===id),e=!!p,o=p||{name:'ОФЗ ',price:'',qty:1,nominal:1000,coupon:'',freq:2,maturity:'',buyDate:today(),last:''};
+ window._bf={freq:o.freq,next:e?nextCp(p):'',mat:o.maturity||'',fr:o.freq};
+ sheet(`<h3>${e?'Изменить облигацию':'Новая облигация'}</h3>${inp('fn','Название',o.name,'text','text')}${inp('ft','Тикер (необязательно)',o.ticker||'','text','text')}
+ <div class="g2">${inp('fp',e?'Средняя цена, ₽':'Цена за штуку, ₽',o.price)}${inp('fq','Штук',o.qty,'text','numeric')}${e?inp('fl','Текущая цена, ₽',o.last||o.price):''}${inp('fv','Номинал, ₽',o.nominal)}${inp('fc','Купон за выплату, ₽',o.coupon)}</div>
+ <label>Выплат в год</label><div class="chips" id="fr">${[[2,'2 раза'],[4,'4 раза'],[12,'12 раз']].map(([v,t])=>`<button type="button" data-a="freq" data-id="${v}" class="${o.freq===v?'on':''}">${t}</button>`).join('')}</div>
+ <div class="g2">${inp('fnx','Ближайший купон',e?nextCp(p):'','date')}${inp('fm','Погашение',o.maturity||'','date')}</div>
+ ${e?'':`<div class="g2">${inp('fb','Дата покупки',o.buyDate,'date')}<div></div>${inp('fnk','НКД за сделку, ₽','0')}${inp('fcm','Комиссия, ₽','0')}</div><label class="chk"><input type="checkbox" id="fx" checked> Списать покупку с баланса</label><div class="pv"><div class="k">К оплате</div><div class="money" id="pvt">—</div><div class="k" id="pvb"></div></div>`}
+ <p class="note">Даты следующих купонов считаются от ближайшего с равным шагом. Если банк сдвинул дату, поправьте её здесь.</p>
+ <div class="acts"><button class="btn pri" data-a="savebond" data-id="${id||''}">${e?'Сохранить':'Добавить'}</button></div>`);
+ if(!e)preview(['fq','fp','fnk','fcm'])}
+function saveBond(id){const e=!!id,p=e?S.pos.find(x=>x.id===id):null,name=$('#fn').value.trim()||'Облигация',ticker=$('#ft')?$('#ft').value.trim():'',price=n($('#fp').value),qty=n($('#fq').value),nom=n($('#fv').value),cp=n($('#fc').value),fr=_bf.freq,nx=$('#fnx').value,mat=$('#fm').value;
+ if(!name||!Number.isInteger(qty)||qty<=0||price<=0||nom<=0||cp<0||![2,4,12].includes(fr))return toast('Проверьте название, количество, цену, номинал и купон');if(!nx)return toast('Укажите дату ближайшего купона');if(nx<today())return toast('Дата ближайшего купона не может быть в прошлом');if(!/^\d{4}-\d{2}-\d{2}$/.test(nx)||Number.isNaN(D(nx).getTime())||iso(D(nx))!==nx)return toast('Проверьте дату ближайшего купона');if(mat&&(!/^\d{4}-\d{2}-\d{2}$/.test(mat)||Number.isNaN(D(mat).getTime())||iso(D(mat))!==mat||mat<nx))return toast('Дата погашения должна быть не раньше ближайшего купона');
+ if(e){const changed=nx!==_bf.next||fr!==_bf.fr||mat!==_bf.mat;Object.assign(p,{name,ticker,price,qty,nominal:nom,coupon:cp,freq:fr,maturity:mat,last:(n($('#fl').value)>0?n($('#fl').value):p.last)});if(changed)p.dates=genDates(nx,fr,mat);
+  S.log.forEach(x=>{if(x.pid===p.id&&x.type==='coupon')x.note=name})}
+ else{const bd=$('#fb').value||today(),nk=n($('#fnk').value),cm=n($('#fcm').value);if(nk<0||cm<0||!/^\d{4}-\d{2}-\d{2}$/.test(bd)||iso(D(bd))!==bd)return toast('Проверьте дату покупки, НКД и комиссию');const clean=r2(price*qty),total=r2(clean+nk+cm),ext=!$('#fx').checked,
+  o={id:uid(),name,ticker,price,nominal:nom,qty,coupon:cp,freq:fr,maturity:mat,buyDate:bd,last:price,proc:bd,dates:genDates(nx,fr,mat)},
+  go=()=>{S.pos.push(o);S.log.push({id:uid(),date:bd,type:'buy',ext,amount:total,cleanAmount:clean,nkd:nk,commission:cm,pid:o.id,bondName:name,qty,price,note:name+' ×'+qty});save();closeSheet();render();hap('medium')};
+  if(!ext&&total>bal()+.005)return ask('На счёте не хватает '+f(total-bal())+'. Всё равно записать покупку?',go),void 0;go();return}
+ save();closeSheet();render();hap('medium')}
+
+function saveTg(silent){const t=$('#tk').value.trim();try{if(t)localStorage.setItem(TK,t);const ci=$('#ci');if(ci)localStorage.setItem(CK,ci.value.trim())}catch(e){}
+ S.notify.credited=$('#nc').checked;S.notify.on=$('#non').checked;save();if(!silent){toast('Сохранено');render()}}
+async function testTg(){saveTg(true);if(!ready())return toast('Укажите токен бота');toast('Отправляю…');
+ const r=await send('✅ <b>Уведомления подключены</b>\nСюда придут сообщения о купонах по облигациям.');toast(r.ok?'Тест отправлен в Telegram':'Не вышло: '+r.err);render()}
+async function copyData(){const j=JSON.stringify(S);try{await navigator.clipboard.writeText(j);toast('Данные скопированы')}catch(e){sheet(`<h3>Копия данных</h3><textarea id="ta" rows="8">${esc(j)}</textarea><div class="acts"><button class="btn" data-a="close">Закрыть</button></div>`);$('#ta').select()}}
+function importForm(){sheet(`<h3>Восстановить данные</h3><label for="ta">Вставьте скопированные данные</label><textarea id="ta" rows="8"></textarea><div class="acts"><button class="btn pri" data-a="doimp">Восстановить</button></div>`)}
+function doImport(){try{const o=JSON.parse($('#ta').value);if(!o||!Array.isArray(o.pos)||!Array.isArray(o.log)||!o.pos.every(x=>x&&typeof x==='object')||!o.log.every(x=>x&&typeof x==='object'))throw 0;ask('Заменить текущие данные скопированными?',()=>{S=o;fix();save();closeSheet();render();toast('Данные восстановлены')})}catch(e){toast('Это не похоже на копию данных')}}
+
+
+/* ---------- analytics ---------- */
+const sh=x=>{const a=Math.abs(x);return a>=1e6?(x/1e6).toFixed(1).replace('.',',')+'м':a>=1e3?(x/1e3).toFixed(a>=1e4?0:1).replace('.',',')+'т':String(Math.round(x))};
+function xirr(fl){const npv=r=>fl.reduce((a,x)=>a+x.c/Math.pow(1+r,x.t/365),0);let lo=-.9,hi=5;if(npv(lo)*npv(hi)>0)return null;for(let i=0;i<80;i++){const m=(lo+hi)/2;npv(m)>0?lo=m:hi=m}return(lo+hi)/2}
+function ytm(p){if(!p.maturity||p.maturity<=today())return null;const fl=[{t:0,c:-((p.last||p.price)+accrued(p)/p.qty)}];(p.dates||[]).filter(d=>d>today()&&d<=p.maturity).forEach(d=>fl.push({t:diff(d),c:p.coupon}));fl.push({t:diff(p.maturity),c:p.nominal});return xirr(fl)}
+const yrsTo=p=>p.maturity?Math.max(0,(D(p.maturity)-D(today()))/31557600000):0;
+const pc1=x=>(x*100).toFixed(1).replace('.',',')+'%';
+function bars(items,o={}){const W=340,H=o.h||150,pt=16,pb=20,n=items.length,gap=4,bw=(W-gap*(n+1))/n,mx=Math.max(1,...items.map(i=>i.s.reduce((a,b)=>a+b,0)));let g='';
+ items.forEach((it,i)=>{const x=gap+i*(bw+gap);let y=H-pb;const tot=it.s.reduce((a,b)=>a+b,0);
+  it.s.forEach((v,k)=>{const h=v/mx*(H-pt-pb);if(h>0){y-=h;g+=`<rect class="c${it.c?it.c[k]:k}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`}});
+  if(tot>0)g+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle">${sh(tot)}</text>`;
+  g+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-5}" text-anchor="middle">${it.l}</text>`});
+ return `<div class="ch"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${o.label||'График'}">${g}<line x1="0" x2="${W}" y1="${H-pb}" y2="${H-pb}" stroke="var(--ln)"/></svg></div>`}
+function line(ser,o={}){const W=340,H=170,pl=4,pr=6,pt=16,pb=22,all=ser.flatMap(s=>s.p.map(p=>p.y)).concat(o.goal?[o.goal]:[]),mx=Math.max(1,...all)*1.1,xs=ser[0].p.map(p=>p.x),x0=xs[0],x1=xs[xs.length-1];
+ const X=x=>pl+(x-x0)/((x1-x0)||1)*(W-pl-pr),Y=y=>H-pb-y/mx*(H-pt-pb);let g='';
+ if(o.goal)g+=`<line class="lng" x1="${pl}" x2="${W-pr}" y1="${Y(o.goal).toFixed(1)}" y2="${Y(o.goal).toFixed(1)}"/><text x="${pl}" y="${(Y(o.goal)-5).toFixed(1)}">цель ${sh(o.goal)}</text>`;
+ ser.forEach(s=>{g+=`<polyline class="${s.c}" stroke-linejoin="round" stroke-linecap="round" points="${s.p.map(p=>X(p.x).toFixed(1)+','+Y(p.y).toFixed(1)).join(' ')}"/>`});
+ const L=ser[0].p[ser[0].p.length-1];g+=`<text x="${(W-pr).toFixed(1)}" y="${(Y(L.y)-7).toFixed(1)}" text-anchor="end" style="fill:var(--ink);font-weight:600">${sh(L.y)}</text>`;
+ g+=`<text x="${pl}" y="${H-5}">${o.xl[0]}</text><text x="${W-pr}" y="${H-5}" text-anchor="end">${o.xl[1]}</text>`;
+ return `<div class="ch"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${o.label||'График'}">${g}<line x1="0" x2="${W}" y1="${H-pb}" y2="${H-pb}" stroke="var(--ln)"/></svg></div>`}
+const fr=x=>Math.round(x).toLocaleString('ru-RU')+'\u00a0₽';
+const kv=(l,v,c)=>`<div class="kv"><span>${l}</span><b class="${c||''}">${v}</b></div>`;
+const leg=a=>`<div class="leg">${a.map(([c,t])=>`<span><i style="background:var(--${c})"></i>${t}</span>`).join('')}</div>`;
+const taxK=()=>Math.min(1,Math.max(0,n(S.pension.taxRate)/100));
+
+function statsView(){
+ if(!S.pos.length)return `${hd('Аналитика')}<div class="empty-t"><b>Пока нечего анализировать</b><span class="note">Добавьте облигации, чтобы увидеть капитал, будущие выплаты, доходность и сроки погашения.</span><div class="btns"><button class="btn pri" data-a="add">＋ Добавить облигацию</button></div></div>`;
+ const val=S.pos.reduce((a,p)=>a+mkt(p),0),acc=S.pos.reduce((a,p)=>a+accrued(p),0),B=bal(),cap=B+val+acc,dep=sm('deposit'),wd=sm('withdraw'),net=dep-wd,res=cap-net,
+  cp=sm('coupon'),yr=yearly(),cy=val?yr/val:0,buyL=S.log.filter(e=>e.type==='buy'),fees=buyL.reduce((a,e)=>a+(e.commission||0),0),nkdPaid=buyL.reduce((a,e)=>a+(e.nkd||0),0),
+  gain=S.pos.reduce((a,p)=>a+((p.last||p.price)-p.price)*p.qty,0),w=S.pos.reduce((a,p)=>{const y=ytm(p);return y==null?a:{s:a.s+y*mkt(p),v:a.v+mkt(p)}},{s:0,v:0}),yt=w.v?w.s/w.v:null,
+  term=S.pos.reduce((a,p)=>a+yrsTo(p)*mkt(p),0)/(val||1),future=futureEvents(),next12=future.filter(e=>diff(e.d)<=365).reduce((a,e)=>a+e.a,0),coupon12=future.filter(e=>e.kind==='coupon'&&diff(e.d)<=365).reduce((a,e)=>a+e.a,0),tx=taxK(),
+  par=S.pos.filter(p=>p.maturity).reduce((a,p)=>a+p.nominal*p.qty,0),qty=S.pos.reduce((a,p)=>a+p.qty,0),cost=S.pos.reduce((a,p)=>a+p.price*p.qty,0),redemptionProfit=par-cost,
+  futureCoupons=future.filter(e=>e.kind==='coupon').reduce((a,e)=>a+e.a,0),allFuture=par+futureCoupons,
+  maturities={};S.pos.forEach(p=>{if(p.maturity){const y=p.maturity.slice(0,4);maturities[y]=(maturities[y]||0)+p.nominal*p.qty}});
+ // Coupon history and forecasts by month.
+ const now=new Date(),lg={},ex={};S.log.filter(e=>e.type==='coupon').forEach(e=>{const k=e.date.slice(0,7);lg[k]=(lg[k]||0)+e.amount});future.filter(e=>e.kind==='coupon').forEach(e=>{const k=e.d.slice(0,7);ex[k]=(ex[k]||0)+e.a});
+ const MS=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'],mi=[];
+ for(let k=-2;k<=11;k++){const d=new Date(now.getFullYear(),now.getMonth()+k,1),key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');mi.push(k<0?{l:MS[d.getMonth()],s:[lg[key]||0],c:[1]}:k===0?{l:MS[d.getMonth()],s:[lg[key]||0,ex[key]||0],c:[1,0]}:{l:MS[d.getMonth()],s:[ex[key]||0],c:[0]})}
+ const maturityRows=Object.keys(maturities).sort().map(y=>({l:y,s:[maturities[y]]})),srt=[...S.pos].sort((a,b)=>mkt(b)-mkt(a));
+ const allocations=srt.map(p=>`<div><div class="l"><b>${esc(p.name)}</b><span>${pc1(mkt(p)/(val||1))} · ${cash(mkt(p))}</span></div><div class="t"><i style="width:${Math.max(0,Math.min(100,mkt(p)/(val||1)*100)).toFixed(1)}%"></i></div></div>`).join('');
+ return `${hd('Аналитика')}
+ <div class="hero-card"><div class="k">КАПИТАЛ С УЧЁТОМ ДЕНЕГ И ОБЛИГАЦИЙ</div><div class="money cap">${cash(cap)}</div><div class="delta ${res>=0?'pos':'neg'}">${res>=0?'↗':'↘'} ${sg(res)} <span class="k">результат к чистым пополнениям</span></div><div class="stats"><div><div class="k">Рыночная стоимость</div><div class="money">${cash(val)}</div></div><div><div class="k">Свободные деньги</div><div class="money">${cash(B)}</div></div><div><div class="k">Получено купонов</div><div class="money">${cash(cp)}</div></div></div></div>
+ <div class="metric-grid">${metric('Возврат номинала',cash(par),'по облигациям с датой погашения')}${metric('Будущие купоны',cash(futureCoupons),'до погашения')}${metric('Все будущие поступления',cash(allFuture),'номинал + купоны','primary')}${metric('Разница номинал / покупка',sg(redemptionProfit),'до налогов и комиссий',redemptionProfit>=0?'primary':'')}</div>
+ <div class="sec"><div class="sec-h"><h2>Финансовый результат</h2></div><div class="panel">${kv('Капитал',cash(cap))}${kv('Вложенный капитал с внешними покупками',cash(netContributions()))}${kv('Результат',sg(res),res>=0?'pos':'neg')}${kv('Стоимость облигаций по рынку',cash(val))}${kv('НКД по портфелю',cash(acc))}${kv('Свободно на счёте',cash(B))}</div></div>
+ <div class="sec"><div class="sec-h"><h2>Доход и денежный поток</h2></div><div class="panel">${kv('Купоны получены',cash(cp),'pos')}${kv('Купоны в ближайшие 12 месяцев',cash(coupon12))}${kv('Погашения в ближайшие 12 месяцев',cash(future.filter(e=>e.kind==='redemption'&&diff(e.d)<=365).reduce((a,e)=>a+e.a,0)))}${kv('Все поступления за 12 месяцев',cash(next12))}${kv('Купоны в год по текущему портфелю',cash(yr))}${kv('Средний купонный доход в месяц',cash(yr/12))}${tx?kv('Средний доход после налога '+S.pension.taxRate+'%',cash(yr/12*(1-tx)),'pos'):''}</div></div>
+ <div class="sec"><div class="sec-h"><h2>Купоны по месяцам</h2></div><div class="chart-card">${bars(mi,{label:'Купоны по месяцам'})}${leg([['ok','получено'],['ac','ожидается']])}</div></div>
+ <div class="sec"><div class="sec-h"><h2>Доходность</h2></div><div class="panel">${kv('Текущая купонная доходность',pc1(cy))}${yt!=null?kv('Доходность к погашению (оценка)',pc1(yt)):''}${yt!=null&&tx?kv('К погашению после налога (оценка)',pc1(yt*(1-tx))):''}${kv('Купоны к стоимости покупки',cost>0?pc1(yr/cost):'—')}${kv('Средний срок до погашения',term.toFixed(1).replace('.',',')+' года')}${kv('Изменение рыночной цены',sg(gain),gain>=0?'pos':'neg')}</div><p class="note">Доходность к погашению — расчётная оценка по введённым данным, не гарантированная доходность. Фактический результат зависит от цены, НКД, комиссий, налогов и условий выпуска.</p></div>
+ <div class="sec"><div class="sec-h"><h2>Структура портфеля</h2></div><div class="panel"><div class="hb">${allocations}</div></div></div>
+ <div class="sec"><div class="sec-h"><h2>Возврат номинала по годам</h2></div><div class="chart-card">${bars(maturityRows,{label:'Возврат номинала по годам'})}</div><div class="panel" style="margin-top:10px">${kv('Всего вернётся при погашении',cash(par),'pos')}${kv('Всего облигаций',String(qty))}${kv('Стоимость покупки по средней цене',cash(cost))}${kv('Разница номинала и цены покупки',sg(redemptionProfit),redemptionProfit>=0?'pos':'neg')}${Object.keys(maturities).sort().map(y=>kv('Погашение в '+y,cash(maturities[y]))).join('')}</div><p class="note">Это именно сумма возврата номинала на счёт. Она не является прибылью: для оценки результата вычитается стоимость покупки.</p></div>
+ <div class="sec"><div class="sec-h"><h2>Каждая облигация</h2><span class="k">нажмите для деталей</span></div><div class="panel">${srt.map(p=>{const y=ytm(p),red=p.maturity?p.nominal*p.qty:null,cb=p.price*p.qty,profit=red===null?null:red-cb,fc=future.filter(e=>e.kind==='coupon'&&e.p.id===p.id).reduce((a,e)=>a+e.a,0);return `<button class="row" style="width:100%;grid-template-columns:minmax(0,1fr) auto" data-a="bond" data-id="${p.id}"><div class="rn"><b>${esc(p.name)}</b><span>${p.qty} шт. · номинал ${cash(p.nominal)} · ${p.maturity?'погашение '+dShort(p.maturity):'дата погашения не указана'}</span><span class="pos">${red===null?'Номинал без даты погашения':'К возврату '+cash(red)} · купоны впереди ${cash(fc)}</span></div><div class="amt">${y!=null?pc1(y):'—'}<small class="${profit===null?'':profit>=0?'pos':'neg'}">${profit===null?'без даты погашения':sg(profit)+' к номиналу'}</small></div></button>`}).join('')}</div></div>
+ <div class="sec"><div class="sec-h"><h2>Комиссии и налог</h2></div><div class="panel">${kv('Комиссии за покупки',cash(fees))}${kv('НКД, уплаченный при покупках',cash(nkdPaid))}${tx?kv('Налог с полученных купонов (оценка)',cash(cp*tx)):''}${tx?kv('Налог с купонов за год (оценка)',cash(yr*tx)):''}</div><p class="note">НКД вы платите продавцу, а затем получаете его вместе с купоном. Налог здесь рассчитывается ориентировочно по ставке из вкладки «Пенсия».</p></div>`;
+}
+/* ---------- pension ---------- */
+function penBase(){const v=S.pos.reduce((a,p)=>a+mkt(p),0),w=S.pos.reduce((a,p)=>{const y=ytm(p);return y==null?a:a+y*mkt(p)},0);return v&&w?Math.min(15,Math.max(5,Math.round(w/v*200)/2-3)):12}
+function penSim(c,yrs,r,infl){let cap=capNow(),own=cap;const out=[],g=r/12;for(let m=1;m<=yrs*12;m++){cap=cap*(1+g)+c;own+=c;if(m%12===0){const y=m/12,k=Math.pow(1+infl,y);out.push({y,cap,own,inc:cap*g,real:cap*g/k})}}return out}
+function penCalc(){const P=S.pension,base=penBase(),rate=Math.min(100,Math.max(0,P.rate>0?n(P.rate):base)),yrs=Math.min(50,Math.max(1,Math.round(n(P.years)||1))),tx=taxK(),infl=Math.min(1,Math.max(-.9,n(P.infl)/100)),c=Math.max(0,n(P.monthly)),r=rate/100*(1-tx),goal=Math.max(0,n(P.goal));
+ const rows=penSim(c,yrs,r,infl),last=rows[rows.length-1],cap0=capNow(),g=r/12;
+ let reach=null;{let cap=cap0;for(let m=1;m<=600;m++){cap=cap*(1+g)+c;if(cap*g/Math.pow(1+infl,m/12)>=goal){reach=m;break}}}
+ let need=0;if(g>0&&goal>0){const N=yrs*12,G=Math.pow(1+g,N),Gn=goal*Math.pow(1+infl,yrs);need=Math.max(0,(Gn/g-cap0*G)/((G-1)/g))}
+ const sc=[[Math.max(1,rate-4),'Осторожно'],[rate,'Базовый'],[rate+2,'Оптимистично']].map(([ra,l])=>{const rr=ra/100*(1-tx),rw=penSim(c,yrs,rr,infl),x=rw[rw.length-1];return{l,ra,cap:x.cap,inc:x.inc,real:x.real}});
+ return{P,base,rate,yrs,tx,infl,c,r,goal,rows,last,cap0,reach,need,sc}}
+function penHero(){const K=penCalc(),L=K.last,year=new Date().getFullYear()+K.yrs;
+ return `<div class="pension-hero"><div class="pension-hero-top"><span class="eyebrow">ПРОГНОЗ ПАССИВНОГО ДОХОДА</span><span class="pension-horizon">${K.yrs} ${plural(K.yrs,'год','года','лет')} · ${year}</span></div><div class="pension-income-label">Ожидаемый доход в месяц</div><div class="pension-income money">${fr(L.inc)}</div><div class="pension-real">${fr(L.real)} <span>в сегодняшних рублях</span></div><div class="pension-hero-foot"><div><span>Капитал к концу срока</span><b>${fr(L.cap)}</b></div><div><span>Текущая база</span><b>${fr(K.cap0)}</b></div></div></div>`}
+function penRest(){const K=penCalc(),L=K.last,step=Math.max(1,Math.ceil(K.yrs/14)),yy=K.rows.filter(r=>r.y%step===0||r.y===K.yrs),yr0=new Date().getFullYear();
+ const bs=yy.map(r=>({l:String(yr0+r.y).slice(2),s:[r.own,Math.max(0,r.cap-r.own)],c:[0,1]}));
+ const reachT=K.reach==null?'Более 50 лет':K.reach<=0?'Уже достигнута':Math.floor(K.reach/12)+' '+plural(Math.floor(K.reach/12),'год','года','лет')+(K.reach%12?' '+K.reach%12+' мес.':'');
+ const lines=[{c:'ln0',p:[{x:0,y:K.cap0*K.r/12},...K.rows.map(r=>({x:r.y,y:r.real}))]},{c:'ln1',p:[{x:0,y:K.cap0*K.r/12},...K.rows.map(r=>({x:r.y,y:r.inc}))]}];
+ const share=L.cap>0?Math.max(0,Math.min(100,L.own/L.cap*100)):0;
+ const scenarios=K.sc.map((x,i)=>`<div class="scenario-card ${i===1?'featured':''}"><div class="scenario-head"><b>${x.l}</b><span>${x.ra.toFixed(1).replace('.',',')}% годовых</span></div><div class="scenario-cap money">${fr(x.cap)}</div><div class="scenario-caption">Прогнозный капитал</div><div class="scenario-income"><b>${fr(x.real)}</b><span>в месяц · в сегодняшних ₽</span></div></div>`).join('');
+ const years=K.rows.map(r=>`<div class="year-row"><div class="year-label">${yr0+r.y}</div><div class="year-main"><b class="money">${fr(r.cap)}</b><span>капитал</span></div><div class="year-income"><b>${fr(r.real)}</b><span>доход / мес. сегодня</span></div></div>`).join('');
+ return `<div class="pension-summary-grid"><div class="pension-stat"><span>Ваши взносы и текущий капитал</span><b>${fr(L.own)}</b></div><div class="pension-stat"><span>Прирост по модели</span><b class="pos">${fr(L.cap-L.own)}</b></div></div>
+ <section class="pension-section"><div class="sec-h"><h2>Цель по доходу</h2><span class="k">${K.goal?fr(K.goal)+' / мес.':'Не задана'}</span></div><div class="goal-panel"><div class="goal-status ${K.goal?(K.reach===null?'warning':'success'):'neutral'}">${K.goal?(K.reach===null?'Цель пока не достигается в горизонте модели':'Ориентировочный срок: '+reachT):'Укажите желаемый доход в настройках расчёта'}</div>${K.goal?`<div class="goal-track"><i style="width:${Math.min(100,K.goal?L.real/K.goal*100:0)}%"></i></div><div class="goal-foot"><span>Прогноз сейчас: ${fr(L.real)} / мес.</span><b>${Math.round(L.real/K.goal*100)}% от цели</b></div>${K.need>0?`<div class="goal-extra">Чтобы достичь цели за выбранный срок, ориентировочный взнос — <b>${fr(K.need)} в месяц</b>.</div>`:''}`:''}</div></section>
+ <section class="pension-section"><div class="sec-h"><h2>Из чего сложится капитал</h2></div><div class="panel pension-breakdown"><div class="breakdown-total"><b>${fr(L.cap)}</b><span>прогноз через ${K.yrs} ${plural(K.yrs,'год','года','лет')}</span></div><div class="breakdown-bar"><i style="width:${share}%"></i></div><div class="breakdown-legend"><span><i class="own-dot"></i>Ваши деньги · ${fr(L.own)}</span><span><i class="growth-dot"></i>Рост · ${fr(L.cap-L.own)}</span></div></div></section>
+ <section class="pension-section"><div class="sec-h"><h2>Рост капитала</h2></div><div class="chart-card">${bars(bs,{h:185,label:'Рост капитала по годам'})}${leg([['ac','ваши деньги'],['ok','рост капитала']])}</div></section>
+ <section class="pension-section"><div class="sec-h"><h2>Прогноз ежемесячного дохода</h2></div><div class="chart-card">${line(lines,{goal:K.goal,xl:['сейчас',String(yr0+K.yrs)],label:'Прогноз дохода в месяц'})}<div class="leg"><span><i style="background:var(--ac)"></i>в сегодняшних рублях</span><span><i style="background:var(--mu)"></i>в рублях будущего года</span></div></div></section>
+ <section class="pension-section"><div class="sec-h"><h2>Сценарии доходности</h2></div><div class="scenario-grid">${scenarios}</div><p class="note">Сценарии — математические допущения, а не обещание доходности. Фактические ставки, цены облигаций, инфляция и налоги могут отличаться.</p></section>
+ <section class="pension-section"><div class="sec-h"><h2>Прогноз по годам</h2><span class="k">В рублях</span></div><div class="year-list">${years}</div></section>
+ <p class="note pension-disclaimer">Модель предполагает ежемесячные взносы и реинвестирование дохода. Доход рассчитан по выбранной ставке после указанного налога. Инфляция применяется для пересчёта покупательной способности. Это учебный сценарный расчёт, не инвестиционная рекомендация.</p>`}
+function pin(k,l,v,ph){return `<div><label for="pi_${k}">${l}</label><input id="pi_${k}" data-p="${k}" type="text" inputmode="decimal" autocomplete="off" value="${v?esc(v):''}" placeholder="${ph||''}"></div>`}
+function pensionView(){const P=S.pension;
+ return `${hd('Пенсия')}<div id="pa">${penHero()}</div>
+ <section class="pension-section assumptions-card"><div class="sec-h"><div><h2>Параметры прогноза</h2><p class="note">Меняйте значения — расчёт обновится автоматически.</p></div><span class="settings-mark">⚙</span></div><div class="assumption-grid">${pin('monthly','Ежемесячный взнос, ₽',P.monthly)}${pin('years','Срок накопления, лет',P.years)}${pin('rate','Доходность, % годовых',P.rate||'','авто '+penBase()+'%')}${pin('infl','Инфляция, % в год',P.infl)}${pin('goal','Целевой доход / мес., ₽',P.goal)}${pin('taxRate','Налог, %',P.taxRate)}</div>
+ <div class="assumption-note"><b>Как считается прогноз</b><span>Предполагаются ежемесячные взносы и реинвестирование дохода. Автоматическая ставка оценивается по текущему портфелю с запасом 3 п.п. Это сценарная модель, а не гарантированный результат.</span></div></section>
+ <div id="pb">${penRest()}</div>`}
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.p;if(!k)return;S.pension[k]=n(e.target.value);save();const a=$('#pa'),b=$('#pb');if(a&&b){a.innerHTML=premiumPenHero();b.innerHTML=premiumPenRest()}});
+
+/* ---------- actions ---------- */
+const ACT={go:id=>{tab=id;render();scrollTo(0,0);hap()},pt:id=>{pTab=id;render()},dep:()=>moneyForm('deposit'),wd:()=>moneyForm('withdraw'),savemoney:id=>saveMoney(id),hist:history,
+ bond:bondSheet,add:()=>bondForm(),edit:id=>bondForm(id),buy:buyForm,savebuy:saveBuy,savebond:saveBond,close:closeSheet,
+ del:id=>ask('Удалить облигацию из портфеля? Операции по счёту останутся.',()=>{S.pos=S.pos.filter(x=>x.id!==id);save();closeSheet();render()}),
+ freq:(id,b)=>{_bf.freq=+id;b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))},
+ lead:(id,b)=>{S.notify.lead=+id;b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))},
+ savetg:()=>saveTg(),testtg:testTg,exp:copyData,imp:importForm,doimp:doImport};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const fn=ACT[b.dataset.a];if(fn)fn(b.dataset.id,b)});
+
+
+/* ================= PREMIUM UI LAYER ================= */
+let payMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+let bondQuery='',bondSort='value';
+const cash=(v)=>f(v||0);
+const metric=(label,value,sub='',cls='')=>`<div class="metric-card ${cls}"><div class="k">${label}</div><div class="money value">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
+const section=(title,body,action='')=>`<section class="sec"><div class="sec-h"><h2>${title}</h2>${action}</div>${body}</section>`;
+const fmtMonth=d=>MF[d.getMonth()]+' '+d.getFullYear();
+function futureEvents(){return canonicalFutureEvents();}
+function premiumHome(){
+ const E=futureEvents(),B=bal(),val=S.pos.reduce((a,p)=>a+mkt(p),0),acc=S.pos.reduce((a,p)=>a+accrued(p),0),cap=B+val+acc,invest=S.pos.reduce((a,p)=>a+p.price*p.qty,0),got=sm('coupon'),yr=yearly(),next=E[0],future=E.filter(e=>diff(e.d)<=365).reduce((a,e)=>a+e.a,0),profit=cap-netContributions();
+ const hero=next?`<div class="ticket"><div class="tb"><div class="when">БЛИЖАЙШАЯ ВЫПЛАТА · ${when(next.d)}</div><div class="sum">+${cash(E.filter(e=>e.d===next.d).reduce((a,e)=>a+e.a,0))}</div><div class="nm">${E.filter(e=>e.d===next.d).map(e=>esc(e.p.name)).join(' · ')} · ${dLong(next.d)}</div></div></div>`:`<div class="empty-t"><b>Будущих выплат пока нет</b><span class="note">Добавьте облигации с датами купонов, чтобы увидеть прогноз.</span><div class="btns"><button class="btn pri" data-a="add">＋ Добавить облигацию</button></div></div>`;
+ const upcoming=E.slice(0,4).map(evRow).join('');
+ return `${hd('Обзор')}<div class="hero-card"><div class="k">ОБЩАЯ СТОИМОСТЬ ПОРТФЕЛЯ</div><div class="money cap">${cash(cap)}</div><div class="delta ${profit>=0?'pos':'neg'}">${profit>=0?'↗':'↘'} ${sg(profit)} <span class="k">финансовый результат*</span></div><div class="stats"><div><div class="k">Капитал</div><div class="money">${cash(invest)}</div></div><div><div class="k">Свободно</div><div class="money">${cash(B)}</div></div><div><div class="k">Купоны получены</div><div class="money">${cash(got)}</div></div></div></div>
+ ${section('Доход от купонов',`<div class="metric-grid">${metric('Доходность купонов',val?pc1(yr/val):'—','к текущей стоимости')}${metric('За год',cash(yr),'по текущему портфелю')}${metric('В среднем за месяц',cash(yr/12),'до налога')}${metric('Ожидается за 12 мес.',cash(future),'по расписанию')}</div>`)}
+ ${section('Ближайшие выплаты',hero+ (upcoming?`<div class="panel" style="margin-top:12px">${upcoming}</div>`:''),`<button class="link" data-a="go" data-id="pay">Все выплаты →</button>`)}
+ <div class="btns"><button class="btn pri" data-a="add">＋ Облигация</button><button class="btn" data-a="dep">Пополнить счёт</button><button class="btn" data-a="wd">Вывести</button><button class="btn" data-a="go" data-id="pay">Выплаты</button><button class="btn" data-a="hist">История</button></div>
+ <p class="note">* Оценка капитала относительно пополнений за вычетом выводов; не является налоговым или брокерским отчётом.</p>`;
+}
+function premiumPay(){
+ const monthKey=iso(payMonth).slice(0,7),all=futureEvents(),expected=all.filter(e=>e.d.slice(0,7)===monthKey),received=S.log.filter(e=>(e.type==='coupon'||(e.type==='sell'&&e.red))&&e.date.slice(0,7)===monthKey).sort((a,b)=>a.date.localeCompare(b.date));
+ const showGot=pTab==='got',items=showGot?received:expected,total=showGot?items.reduce((a,e)=>a+e.amount,0):items.reduce((a,e)=>a+e.a,0);
+ const grouped={};items.forEach(e=>{const d=showGot?e.date:e.d;(grouped[d]=grouped[d]||[]).push(e)});
+ const rows=Object.keys(grouped).sort().map(d=>`<div class="mh"><b>${dLong(d)}</b><span class="money pos">+${cash(grouped[d].reduce((a,e)=>a+(showGot?e.amount:e.a),0))}</span></div>${grouped[d].map(e=>showGot?`<button class="row" data-a="${e.red?'redemptioninfo':'couponinfo'}" data-id="${e.id}"><div class="dt"><b>${D(e.date).getDate()}</b><span>${MG[D(e.date).getMonth()].slice(0,3)}</span></div><div class="rn"><b>${e.red?'Погашение номинала':esc(e.note||'Купон')}</b><span>${e.red?'Возврат номинала · автоматически':'Зачислено · '+(e.auto?'автоматически':'операция')}</span></div><div class="amt pos">+${cash(e.amount)}</div></button>`:evRow(e)).join('')}`).join('');
+ const allFuture=all.reduce((a,e)=>a+e.a,0),couponFuture=all.filter(e=>e.kind==='coupon').reduce((a,e)=>a+e.a,0),redemptionFuture=all.filter(e=>e.kind==='redemption').reduce((a,e)=>a+e.a,0),monthCoupons=expected.filter(e=>e.kind==='coupon').reduce((a,e)=>a+e.a,0),monthRedemption=expected.filter(e=>e.kind==='redemption').reduce((a,e)=>a+e.a,0);
+ return `${hd('Выплаты')}<div class="panel"><div class="k">${showGot?'ПОЛУЧЕНО ЗА МЕСЯЦ':'ОЖИДАЕМЫЕ ПОСТУПЛЕНИЯ ЗА МЕСЯЦ'}</div><div class="money cap" style="font-size:34px">${cash(total)}</div><div class="k">${items.length} ${plural(items.length,'событие','события','событий')}</div></div>
+ <div class="month-nav"><button data-a="month" data-id="-1" aria-label="Предыдущий месяц">‹</button><strong>${fmtMonth(payMonth)}</strong><button data-a="month" data-id="1" aria-label="Следующий месяц">›</button></div><div class="toolbar"><select id="payMonthSelect" aria-label="Выбрать месяц">${MF.map((m,i)=>`<option value="${i}" ${payMonth.getMonth()===i?'selected':''}>${m}</option>`).join('')}</select><select id="payYearSelect" aria-label="Выбрать год">${Array.from({length:11},(_,i)=>new Date().getFullYear()-5+i).map(y=>`<option value="${y}" ${payMonth.getFullYear()===y?'selected':''}>${y} год</option>`).join('')}</select></div>
+ <div class="seg"><button class="${!showGot?'on':''}" data-a="pt" data-id="soon">Ожидаются</button><button class="${showGot?'on':''}" data-a="pt" data-id="got">Получено</button></div>
+ <div class="metric-grid">${metric('Все будущие поступления',cash(allFuture),'купоны + номинал')}${metric('Будущие купоны',cash(couponFuture),'по расписанию')}${metric('Возврат номинала',cash(redemptionFuture),'при погашении')}${metric('В этом месяце',cash(monthCoupons+monthRedemption),`купоны ${cash(monthCoupons)} · номинал ${cash(monthRedemption)}`)}</div>
+ ${rows?`<div class="panel" style="margin-top:14px">${rows}</div>`:`<div class="empty-t"><b>В этом месяце выплат нет</b><span class="note">Переключите месяц или откройте ${showGot?'«Ожидаются»':'«Получено»'}.</span></div>`}
+ <p class="note">Погашение показывает возврат номинала облигаций, а не прибыль. Купоны учитываются отдельными поступлениями. Дата и сумма зависят от параметров облигации, внесённых вами.</p>`;
+}
+function premiumBonds(){
+ const list=[...S.pos].filter(p=>(p.name+' '+(p.ticker||'')).toLowerCase().includes(bondQuery.toLowerCase()));
+ const sorters={value:(a,b)=>mkt(b)-mkt(a),yield:(a,b)=>(b.coupon*b.freq/(b.last||b.price))-(a.coupon*a.freq/(a.last||a.price)),maturity:(a,b)=>(a.maturity||'9999').localeCompare(b.maturity||'9999'),coupon:(a,b)=>b.coupon-a.coupon,name:(a,b)=>a.name.localeCompare(b.name,'ru')};list.sort(sorters[bondSort]||sorters.value);
+ const cards=list.map(p=>`<button class="bond-card" data-a="bond" data-id="${p.id}"><div class="bond-top"><div style="min-width:0"><div class="bond-name">${esc(p.name)}</div><div class="bond-ticker">${esc(p.ticker||'Облигация')} · ${p.qty} шт.</div></div><div class="bond-value">${cash(mkt(p))}</div></div><div class="bond-meta"><div><span>Купон / год</span><b class="pos">${cash(p.coupon*p.freq*p.qty)}</b></div><div><span>Доходность купона</span><b>${pc1(p.coupon*p.freq/(p.last||p.price))}</b></div><div><span>Погашение</span><b>${p.maturity?dShort(p.maturity):'—'}</b><small class="pos">${p.maturity?'к возврату '+cash(p.nominal*p.qty):'номинал '+cash(p.nominal*p.qty)}</small></div></div></button>`).join('');
+ return `${hd('Облигации')}<div class="toolbar"><input id="bondSearch" type="text" placeholder="Поиск по названию или тикеру" value="${esc(bondQuery)}"><select id="bondSort"><option value="value" ${bondSort==='value'?'selected':''}>По стоимости</option><option value="yield" ${bondSort==='yield'?'selected':''}>По доходности</option><option value="maturity" ${bondSort==='maturity'?'selected':''}>По погашению</option><option value="coupon" ${bondSort==='coupon'?'selected':''}>По купону</option><option value="name" ${bondSort==='name'?'selected':''}>По алфавиту</option></select></div>
+ <div class="sec-h"><span class="k">В ПОРТФЕЛЕ · ${S.pos.length}</span><button class="btn pri" style="flex:0 0 auto;min-height:40px;padding:8px 13px" data-a="add">＋ Добавить</button></div>
+ ${cards?`<div class="bond-list">${cards}</div>`:`<div class="empty-t"><b>${S.pos.length?'Ничего не найдено':'Портфель пока пуст'}</b><span class="note">${S.pos.length?'Измените запрос поиска.':'Добавьте первую облигацию — портфель и прогнозы обновятся автоматически.'}</span>${!S.pos.length?'<div class="btns"><button class="btn pri" data-a="add">Добавить облигацию</button></div>':''}</div>`}`;
+}
+function premiumPenHero(){
+ const K=penCalc(),L=K.last;
+ return `<div class="hero-card"><div class="k">ПРОГНОЗ ЧЕРЕЗ ${K.yrs} ${plural(K.yrs,'ГОД','ГОДА','ЛЕТ')}</div><div class="money cap">${cash(L.cap)}</div><div class="delta">Ожидаемый доход в месяц · ${cash(L.real)} в сегодняшних рублях</div><div class="stats"><div><div class="k">Ваши взносы</div><div class="money">${cash(L.own)}</div></div><div><div class="k">Доход от капитала</div><div class="money">${cash(L.cap-L.own)}</div></div><div><div class="k">В месяц номинально</div><div class="money">${cash(L.inc)}</div></div></div></div>`;
+}
+function premiumPenRest(){
+ const K=penCalc(),L=K.last,yr0=new Date().getFullYear(),step=Math.max(1,Math.ceil(K.yrs/12)),yy=K.rows.filter(r=>r.y%step===0||r.y===K.yrs);
+ const chart=yy.map(r=>({l:String(yr0+r.y),s:[r.own,Math.max(0,r.cap-r.own)],c:[0,1]}));
+ const reach=K.reach==null?'Более 50 лет':K.reach===0?'Уже достигнута':(Math.floor(K.reach/12)?Math.floor(K.reach/12)+' '+plural(Math.floor(K.reach/12),'год','года','лет')+' ':'')+(K.reach%12?K.reach%12+' мес.':'');
+ return `<div class="metric-grid">${metric('Капитал к концу срока',cash(L.cap),'прогнозная сумма')}${metric('Ежемесячный доход',cash(L.real),'в сегодняшних рублях')}${metric('Нужно откладывать',cash(K.need),'для достижения цели')}${metric('Цель по доходу',K.goal?cash(K.goal):'Не задана',K.goal?'в месяц, сегодняшние ₽':'задайте в параметрах')}</div>
+ ${section('Достижение цели',`<div class="panel">${kv('Целевой доход',K.goal?cash(K.goal)+' / мес.':'Не задан', '')}${kv('Когда цель будет достигнута',K.goal?reach:'Добавьте цель в параметрах')}${kv('Текущая оценка дохода',cash(K.cap0*K.r/12))}${kv('Ставка в расчёте',pc1(K.rate/100))}</div><p class="note">Это модельный прогноз. Доходность, инфляция, налоги и будущие купоны могут отличаться от введённых предположений.</p>`)}
+ ${section('Из чего сложится капитал',`<div class="chart-card">${bars(chart,{h:180,label:'Состав капитала по годам'})}${leg([['ac','Ваши взносы'],['ok','Рост капитала']])}</div><div class="panel" style="margin-top:10px">${kv('Начальный капитал',cash(K.cap0))}${kv('Ваши будущие взносы',cash(L.own-K.cap0))}${kv('Прогнозный прирост',cash(L.cap-L.own),'pos')}</div>`)}
+ ${section('Сценарии доходности',`<div class="metric-grid">${K.sc.map(s=>metric(s.l,cash(s.cap),pc1(s.ra/100)+' годовых · '+cash(s.real)+'/мес.')).join('')}</div><p class="note">Осторожный, базовый и оптимистичный сценарии — математические предположения, а не гарантированные результаты.</p>`)}
+ ${section('Прогноз по годам',`<div class="panel">${K.rows.map(r=>`<div class="yr"><b>${yr0+r.y}</b><span class="money">${cash(r.cap)}</span><span class="amt">${cash(r.real)}<small>в месяц · сегодняшние ₽</small></span></div>`).join('')}</div>`)}
+ <p class="note">Расчёт предполагает ежемесячные взносы и реинвестирование дохода. Реальная доходность портфеля не фиксирована; модель не учитывает индивидуальные изменения налогов и комиссий.</p>`;
+}
+function premiumPension(){
+ const P=S.pension;
+ return `${hd('Пенсия')}<div id="pa">${premiumPenHero()}</div>
+ <div class="settings-card sec"><div class="sec-h"><h2>Параметры прогноза</h2></div><div class="g2">${pin('monthly','Ежемесячный взнос, ₽',P.monthly)}${pin('years','Срок накопления, лет',P.years)}${pin('rate','Доходность, % годовых',P.rate||'','Авто: '+pc1(penBase()/100))}${pin('infl','Инфляция, % в год',P.infl)}${pin('goal','Цель дохода, ₽ / месяц',P.goal)}${pin('taxRate','Налог на купоны, %',P.taxRate)}</div><p class="note">Нулевая ставка означает автоматическую оценку от доходности текущего портфеля с запасом 3 п.п. и ограничением 5–15% годовых, чтобы единичная аномальная доходность не раздувала прогноз. Все поля можно менять — прогноз обновляется сразу.</p></div>
+ <div id="pb">${premiumPenRest()}</div>`;
+}
+
+function premiumSettings(){const N=S.notify,ok=ready(),cid=chatId(),inTg=!!(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user),dark=document.documentElement.dataset.theme==='dark',mode=S.theme||'system';
+ return `${hd('Настройки')}<div class="settings-card"><div class="sec-h"><h2>Внешний вид</h2></div><div class="kv"><span>Тема приложения</span><b>${dark?'Тёмная':'Светлая'}</b></div><div class="chips" style="margin-top:12px"><button data-a="theme" data-id="light" class="${mode==='light'?'on':''}">☀ Светлая</button><button data-a="theme" data-id="dark" class="${mode==='dark'?'on':''}">☾ Тёмная</button><button data-a="theme" data-id="system" class="${mode==='system'?'on':''}">Авто</button></div></div>
+ <div class="settings-card sec"><div class="sec-h"><h2>Telegram-уведомления</h2></div><div class="st"><span class="dot ${ok&&N.on?'on':''}"></span>${!ok?'Не подключено':N.on?'Включены':'Выключены'}</div>
+ <label for="tk">Токен бота</label><input id="tk" type="password" autocomplete="off" placeholder="${token()?'Токен сохранён':'Токен от @BotFather'}">
+ ${inTg?`<p class="note">Ваш Telegram ID: ${uid_}. Бот должен быть запущен через Start.</p>`:inp('ci','ID чата',cid)}
+ <label>Предупреждать о купоне заранее</label><div class="chips">${[[0,'Не нужно'],[1,'За 1 день'],[3,'За 3 дня']].map(([v,t])=>`<button data-a="lead" data-id="${v}" class="${N.lead===v?'on':''}">${t}</button>`).join('')}</div>
+ <label class="chk"><input type="checkbox" id="nc" ${N.credited?'checked':''}> Сообщать о поступлении купона</label><label class="chk"><input type="checkbox" id="non" ${N.on?'checked':''}> Уведомления включены</label>
+ <div class="acts"><button class="btn pri" data-a="savetg">Сохранить</button><button class="btn" data-a="testtg">Тест</button></div><p class="note">Проверка уведомлений выполняется при открытии приложения. Токен хранится в localStorage этого устройства.</p></div>
+ <div class="settings-card sec"><h2>Резервная копия</h2><div class="acts"><button class="btn" data-a="exp">Экспортировать данные</button><button class="btn" data-a="imp">Импортировать</button></div><p class="note">${CS?'Данные дополнительно синхронизируются с Telegram CloudStorage.':'Данные хранятся в браузере. Экспортируйте копию для переноса на другое устройство.'}</p></div>
+ <div class="settings-card sec"><h2>О приложении</h2><p class="note">ObligationBruh · персональный учёт облигаций, купонов и финансовых целей.</p><p class="note">Хранилище и исходные ключи данных сохранены для совместимости с предыдущей версией.</p></div>`;
+}
+function premiumBondSheet(id){const p=S.pos.find(x=>x.id===id);if(!p)return;
+ const paid=S.log.filter(e=>e.type==='coupon'&&e.pid===p.id).reduce((a,e)=>a+e.amount,0),futureList=ev().filter(e=>e.p.id===p.id),future=futureList.reduce((a,e)=>a+e.a,0),hasMaturity=!!p.maturity,redemption=hasMaturity?p.nominal*p.qty:null,cost=p.price*p.qty,nominalDelta=redemption===null?null:redemption-cost,market=mkt(p),allFuture=redemption===null?null:redemption+future,totalCoupons=paid+future,allProfit=allFuture===null?null:paid+allFuture-cost;
+ const item=(l,v,c='')=>`<div class="kv"><span>${l}</span><b class="${c}">${v}</b></div>`;
+ sheet(`<div class="tag">${esc(p.ticker||'ОБЛИГАЦИЯ')}</div><h3 style="margin-top:10px">${esc(p.name)}</h3><div class="money" style="font-size:32px;letter-spacing:-.045em">${cash(market)}</div><div class="k">Текущая рыночная стоимость · ${p.qty} шт.</div>
+ <div class="detail-grid">${metric('Средняя цена',cash(p.price),'за 1 шт.')}${metric('Текущая цена',cash(p.last||p.price),'за 1 шт.')}${metric('Номинал',cash(p.nominal),'вернётся за 1 шт.')}${metric('Купон',cash(p.coupon),'за 1 выплату')}</div>
+ <div class="detail-section"><h4>Погашение — сколько денег вернётся</h4><div class="money pos" style="font-size:30px;margin:7px 0">${redemption===null?'—':cash(redemption)}</div><p class="note">${hasMaturity?'При погашении '+dShort(p.maturity)+' на счёт вернётся номинал всех '+p.qty+' облигаций.':'Укажите дату погашения, чтобы включить возврат номинала в календарь и прогноз.'}</p>${item('Номинал одной облигации',cash(p.nominal))}${item('Количество',String(p.qty)+' шт.')}${item('Сумма возврата номинала',redemption===null?'Не рассчитана':cash(redemption),'pos')}${item('Было вложено по средней цене',cash(cost))}${item('Разница номинал − покупка',nominalDelta===null?'Не рассчитана':sg(nominalDelta),nominalDelta===null?'':nominalDelta>=0?'pos':'neg')}</div>
+ <div class="detail-section"><h4>Купоны и общий прогноз</h4>${item('Уже получено купонов',cash(paid),'pos')}${item('Осталось будущих купонов',cash(future))}${item('Всего купонов за период владения',cash(totalCoupons),'pos')}${item('Все будущие поступления',allFuture===null?'Нужна дата погашения':cash(allFuture),'pos')}${item('Ожидаемая прибыль с учётом купонов',allProfit===null?'Нужна дата погашения':sg(allProfit),allProfit===null?'':allProfit>=0?'pos':'neg')}${item('Доходность к погашению',ytm(p)===null?'Не рассчитана':pc1(ytm(p)))}</div>
+ <p class="note">Важно: «Сумма возврата номинала» — реальные деньги, которые поступят при погашении (номинал × количество). «Разница номинал − покупка» — результат только по цене. Будущие поступления включают возврат номинала и будущие купоны. Прибыль учитывает также уже полученные купоны и вычитает стоимость покупки. Налоги и комиссии могут изменить итог.</p>
+ <div class="detail-section"><h4>Параметры выпуска</h4>${item('Выплат в год',String(p.freq))}${item('Купонный доход в год',cash(p.coupon*p.freq*p.qty),'pos')}${item('Следующий купон',nextCp(p)?dShort(nextCp(p)):'Нет даты')}${item('Погашение',p.maturity?dShort(p.maturity):'Не указано')}</div>
+ <div class="acts"><button class="btn pri" data-a="buy" data-id="${id}">Докупить</button><button class="btn" data-a="sell" data-id="${id}">Продать</button><button class="btn" data-a="edit" data-id="${id}">Изменить</button><button class="btn del" data-a="del" data-id="${id}">Удалить</button></div>`);
+}
+function sellForm(id){const p=S.pos.find(x=>x.id===id);if(!p)return;sheet(`<h3>Продать облигации</h3><p class="note">${esc(p.name)} · доступно ${p.qty} шт.</p>${inp('sq','Количество','1','text','numeric')}${inp('sp','Цена продажи за штуку, ₽',p.last||p.price)}${inp('scm','Комиссия, ₽','0')}<div class="pv"><div class="k">Ориентировочно поступит</div><div class="money" id="sellPreview">—</div></div><div class="acts"><button class="btn pri" data-a="savesell" data-id="${id}">Подтвердить продажу</button></div>`);const upd=()=>{$('#sellPreview').textContent=cash(Math.max(0,n($('#sq').value)*n($('#sp').value)-n($('#scm').value)))};['sq','sp','scm'].forEach(k=>$('#'+k).addEventListener('input',upd));upd()}
+function saveSell(id){const p=S.pos.find(x=>x.id===id),q=n($('#sq').value),pr=n($('#sp').value),fee=n($('#scm').value);if(!p||!Number.isInteger(q)||q<=0||q>p.qty||pr<=0||fee<0)return toast('Проверьте количество, цену и комиссию');const gross=r2(q*pr),amount=r2(Math.max(0,gross-fee));S.log.push({id:uid(),date:today(),type:'sell',amount,cleanAmount:gross,commission:fee,pid:p.id,bondName:p.name,qty:q,price:pr,note:'Продажа: '+p.name+' ×'+q});p.qty=r2(p.qty-q);if(p.qty<=0)S.pos=S.pos.filter(x=>x.id!==id);save();closeSheet();render();toast('Продажа записана');}
+function couponInfo(id){const e=S.log.find(x=>x.id===id);if(!e)return;sheet(`<h3>Купон получен</h3><div class="money pos" style="font-size:30px">+${cash(e.amount)}</div><div class="detail-section">${kv('Облигация',esc(e.note||'Купон'))}${kv('Дата',dShort(e.date))}${kv('Статус','Зачислен на счёт')}</div><div class="acts"><button class="btn" data-a="close">Закрыть</button></div>`)}
+function redemptionInfo(id){const e=S.log.find(x=>x.id===id&&x.red);if(!e)return;sheet(`<h3>Погашение облигации</h3><div class="money pos" style="font-size:30px">+${cash(e.amount)}</div><div class="detail-section">${kv('Выпуск',esc(e.bondName||e.note||'Облигация'))}${kv('Количество',String(e.qty||'—')+' шт.')}${kv('Дата зачисления',dShort(e.date))}${kv('Основание','Возврат номинала')}${kv('Статус','Зачислено на счёт')}</div><p class="note">Это возврат номинальной стоимости облигаций, а не купонный доход.</p><div class="acts"><button class="btn" data-a="close">Закрыть</button></div>`)}
+function premiumStats(){
+ const allEvents=canonicalFutureEvents(),now=new Date(),years=[...new Set([...allEvents.map(e=>+e.d.slice(0,4)),...S.log.map(e=>+String(e.date||'').slice(0,4)).filter(Number.isFinite),now.getFullYear()])].filter(Number.isFinite).sort((a,b)=>a-b);
+ if(!window.__obStatsYear)window.__obStatsYear=now.getFullYear();if(!window.__obStatsMonth)window.__obStatsMonth='all';
+ const sy=Number(window.__obStatsYear),smth=window.__obStatsMonth;
+ const val=S.pos.reduce((a,p)=>a+mkt(p),0),acc=S.pos.reduce((a,p)=>a+accrued(p),0),B=bal(),capital=B+val+acc;
+ const cost=S.pos.reduce((a,p)=>a+p.price*p.qty,0),currentNominal=S.pos.reduce((a,p)=>a+p.nominal*p.qty,0),futureCoupons=allEvents.filter(e=>e.kind==='coupon').reduce((a,e)=>a+e.a,0),futureRed=allEvents.filter(e=>e.kind==='redemption').reduce((a,e)=>a+e.a,0),received=sm('coupon'),yr=yearly(),priceDelta=S.pos.reduce((a,p)=>a+((p.last||p.price)-p.price)*p.qty,0),result=capital-netContributions();
+ const next365=allEvents.filter(e=>diff(e.d)<=365).reduce((a,e)=>a+e.a,0),coupon365=allEvents.filter(e=>e.kind==='coupon'&&diff(e.d)<=365).reduce((a,e)=>a+e.a,0),red365=allEvents.filter(e=>e.kind==='redemption'&&diff(e.d)<=365).reduce((a,e)=>a+e.a,0);
+ const weights=[...S.pos].sort((a,b)=>mkt(b)-mkt(a)),allocation=weights.map(p=>`<div><div class="l"><b>${esc(p.name)}</b><span>${pc1(mkt(p)/(val||1))} · ${cash(mkt(p))}</span></div><div class="t"><i style="width:${Math.max(0,Math.min(100,mkt(p)/(val||1)*100))}%"></i></div></div>`).join('');
+ const paid=S.log.filter(e=>e.type==='coupon'),paidRed=S.log.filter(e=>e.type==='sell'&&e.red);
+ const selectedPaid=paid.filter(e=>+e.date.slice(0,4)===sy&&(smth==='all'||+e.date.slice(5,7)===Number(smth)+1));
+ const selectedFuture=allEvents.filter(e=>+e.d.slice(0,4)===sy&&(smth==='all'||+e.d.slice(5,7)===Number(smth)+1));
+ const selectedPaidTotal=selectedPaid.reduce((a,e)=>a+e.amount,0),selectedFutureCoupons=selectedFuture.filter(e=>e.kind==='coupon').reduce((a,e)=>a+e.a,0);
+ const selectedRed=selectedFuture.filter(e=>e.kind==='redemption').reduce((a,e)=>a+e.a,0);
+ const months=Array.from({length:12},(_,i)=>{const k=String(i+1).padStart(2,'0'),got=paid.filter(e=>e.date.slice(0,4)===String(sy)&&e.date.slice(5,7)===k).reduce((a,e)=>a+e.amount,0),plan=allEvents.filter(e=>e.kind==='coupon'&&e.d.slice(0,4)===String(sy)&&e.d.slice(5,7)===k).reduce((a,e)=>a+e.a,0);return {l:MF[i].slice(0,3),s:[got,plan],c:[1,0],key:`${sy}-${k}`}});
+ const byYear={};allEvents.filter(e=>e.kind==='redemption').forEach(e=>{const y=e.d.slice(0,4);byYear[y]=(byYear[y]||0)+e.a});
+ const maturities=Object.keys(byYear).sort().map(y=>({l:y,s:[byYear[y]],key:y}));
+ const ytmRows=weights.map(p=>({p,y:ytm(p)})).filter(x=>x.y!==null),weightedYtm=ytmRows.length?ytmRows.reduce((a,x)=>a+x.y*mkt(x.p),0)/ytmRows.reduce((a,x)=>a+mkt(x.p),0):null,fees=S.log.filter(e=>['buy','sell'].includes(e.type)).reduce((a,e)=>a+(e.commission||0),0),tax=taxK();
+ const monthOptions=MF.map((m,i)=>`<option value="${i}" ${smth===String(i)?'selected':''}>${m}</option>`).join('');
+ return `${hd('Статистика')}
+ <div class="hero-card"><div class="k">КАПИТАЛ · ДЕНЬГИ + ОБЛИГАЦИИ + НКД</div><div class="money cap">${cash(capital)}</div><div class="delta">${result>=0?'↗':'↘'} ${sg(result)} <span style="opacity:.72">к чистым пополнениям</span></div><div class="stats"><div><div class="k">Облигации</div><div class="money">${cash(val)}</div></div><div><div class="k">Деньги</div><div class="money">${cash(B)}</div></div><div><div class="k">Купоны получены</div><div class="money">${cash(received)}</div></div></div></div>
+ ${section('Период статистики',`<div class="toolbar"><select id="statsYear" aria-label="Год статистики">${years.map(y=>`<option value="${y}" ${y===sy?'selected':''}>${y} год</option>`).join('')}</select><select id="statsMonth" aria-label="Месяц статистики"><option value="all" ${smth==='all'?'selected':''}>Весь год</option>${monthOptions}</select></div><div class="metric-grid">${metric('Получено купонов',cash(selectedPaidTotal),'за выбранный период')}${metric('Прогноз купонов',cash(selectedFutureCoupons),'по расписанию')}${metric('Возврат номинала',cash(selectedRed),'в выбранном периоде')}${metric('Всего ожидается',cash(selectedFutureCoupons+selectedRed),'купоны + номинал')}</div>`)}
+ ${section('Ключевые показатели',`<div class="metric-grid">${metric('Рыночная стоимость',cash(val),'текущая цена × количество')}${metric('НКД',cash(acc),'оценка по следующему купону')}${metric('Купонный доход в год',cash(yr),'по текущим позициям')}${metric('Купонная доходность',val?pc1(yr/val):'—','к рыночной стоимости')}</div>`)}
+ ${section('Прогноз купонов по месяцам · '+sy,`<div class="chart-card">${interactiveBars(months,'Нажмите на столбец месяца')}</div>${leg([['ok','получено'],['ac','ожидается']])}`)}
+ ${section('Будущие поступления',`<div class="metric-grid">${metric('Возврат номинала',cash(futureRed),'по будущим датам погашения')}${metric('Будущие купоны',cash(futureCoupons),'до дат погашения')}${metric('Всего поступит',cash(futureRed+futureCoupons),'номинал + будущие купоны','primary')}${metric('Ближайшие 12 месяцев',cash(next365),'все виды поступлений')}</div><div class="panel" style="margin-top:10px">${kv('Купоны за 12 месяцев',cash(coupon365),'pos')}${kv('Погашения за 12 месяцев',cash(red365),'pos')}</div>`)}
+ ${section('Возврат номинала по годам',`<div class="chart-card">${maturities.length?interactiveBars(maturities,'Нажмите на год'): '<p class="note">Нет будущих погашений с указанной датой.</p>'}</div><p class="note">На графике показан возврат номинала (номинал × количество), а не прибыль.</p>`)}
+ ${section('Доходность и результат',`<div class="panel">${kv('Доходность к погашению · оценка',weightedYtm===null?'Нет данных':pc1(weightedYtm))}${kv('Изменение рыночной цены',sg(priceDelta),priceDelta>=0?'pos':'neg')}${kv('Стоимость покупки текущих позиций',cash(cost))}${kv('Номинал текущих позиций',cash(currentNominal))}${kv('Разница номинала и цены покупки',sg(currentNominal-cost),currentNominal>=cost?'pos':'neg')}${kv('Полученные купоны за всё время',cash(received),'pos')}${kv('Вложенный капитал с внешними покупками',cash(netContributions()))}${kv('Финансовый результат к пополнениям',sg(result),result>=0?'pos':'neg')}${kv('Комиссии, записанные в журнале',cash(fees))}${tax?kv('Оценка налога с купонов',cash(received*tax)):''}</div><p class="note">Результат к пополнениям — изменение общей стоимости активов относительно внесённых и выведенных денег. Это не точная брокерская доходность.</p>`)}
+ ${section('Структура портфеля',`<div class="panel">${allocation||'<p class="note">Добавьте облигации, чтобы увидеть распределение.</p>'}</div>`)}
+ ${section('Разбор каждой позиции',`<div class="panel">${weights.length?weights.map(p=>{const red=p.maturity?p.nominal*p.qty:null,c=p.price*p.qty,delta=red===null?null:red-c,fc=allEvents.filter(e=>e.kind==='coupon'&&e.p.id===p.id).reduce((a,e)=>a+e.a,0);return `<button class="row" style="width:100%;grid-template-columns:minmax(0,1fr) auto" data-a="bond" data-id="${p.id}"><div class="rn"><b>${esc(p.name)}</b><span>${p.qty} шт. · покупка ${cash(c)}</span><span class="pos">${red===null?'Укажите дату погашения':'Вернётся '+cash(red)} · купоны впереди ${cash(fc)}</span></div><div class="amt">${ytm(p)===null?'—':pc1(ytm(p))}<small class="${delta===null?'':delta>=0?'pos':'neg'}">${delta===null?'без даты':sg(delta)+' к номиналу'}</small></div></button>`}).join(''):'<p class="note">Портфель пуст.</p>'}</div>`)}
+ <p class="note">Прогноз купонов в статистике и разделе «Выплаты» формируется одной функцией по расписанию облигаций. Точность зависит от введённых дат, количества и размера купона.</p>`;
+}
+
+function canonicalFutureEvents(){
+ const events=[];
+ S.pos.forEach(p=>{
+  (p.dates||[]).forEach(d=>{if(typeof d==='string'&&d>today()&&(!p.maturity||d<=p.maturity)&&p.coupon>0&&p.qty>0)events.push({d,p,a:r2(p.coupon*p.qty),kind:'coupon',key:p.id+'|coupon|'+d})});
+  if(p.maturity&&p.maturity>today()&&p.qty>0)events.push({d:p.maturity,p,a:r2(p.nominal*p.qty),kind:'redemption',key:p.id+'|redemption|'+p.maturity});
+ });
+ const seen=new Set();return events.filter(e=>{if(seen.has(e.key))return false;seen.add(e.key);return true}).sort((a,b)=>a.d.localeCompare(b.d)||(a.kind==='coupon'?-1:1));
+}
+function interactiveBars(items,hint){const W=340,H=155,pt=16,pb=24,gap=5,bw=(W-gap*(items.length+1))/Math.max(1,items.length),mx=Math.max(1,...items.map(i=>i.s.reduce((a,b)=>a+b,0)));let g='';items.forEach((it,i)=>{const x=gap+i*(bw+gap);let y=H-pb;it.s.forEach((v,k)=>{const bh=v/mx*(H-pt-pb);if(bh>0){y-=bh;g+=`<rect class="c${it.c?it.c[k]:k}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2"/>`}});g+=`<rect x="${x}" y="${pt}" width="${bw}" height="${H-pt-pb}" fill="transparent" data-chart-key="${it.key||it.l}" tabindex="0" role="button" aria-label="Открыть ${it.l}"/>`;g+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-5}" text-anchor="middle">${it.l}</text>`});return `<div class="ch"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Интерактивный график">${g}<line x1="0" x2="${W}" y1="${H-pb}" y2="${H-pb}" stroke="var(--ln)"/></svg></div><p class="note">${hint}</p>`}
+function showChartPeriod(key){
+ let events=[],title='';
+ if(/^\d{4}-\d{2}$/.test(key)){title=MF[Number(key.slice(5))-1]+' '+key.slice(0,4);const [y,m]=key.split('-');events=[...S.log.filter(e=>e.type==='coupon'&&e.date.slice(0,7)===key).map(e=>({...e,kind:'received'})),...canonicalFutureEvents().filter(e=>e.kind==='coupon'&&e.d.slice(0,7)===key)];window.__obStatsYear=Number(y);window.__obStatsMonth=String(Number(m)-1)}
+ else if(/^\d{4}$/.test(key)){title='Погашения · '+key;events=canonicalFutureEvents().filter(e=>e.kind==='redemption'&&e.d.slice(0,4)===key);window.__obStatsYear=Number(key);window.__obStatsMonth='all'}
+ const total=events.reduce((a,e)=>a+(e.amount??e.a??0),0),rows=events.length?events.sort((a,b)=>(a.date||a.d).localeCompare(b.date||b.d)).map(e=>`<div class="row"><div class="dt"><b>${D(e.date||e.d).getDate()}</b><span>${MG[D(e.date||e.d).getMonth()].slice(0,3)}</span></div><div class="rn"><b>${esc(e.p?.name||e.note||e.bondName||'Облигация')}</b><span>${e.kind==='redemption'?'Возврат номинала':e.kind==='received'?'Купон получен':'Ожидаемый купон'} · ${dShort(e.date||e.d)}</span></div><div class="amt pos">+${cash(e.amount??e.a??0)}</div></div>`).join(''):'<p class="note">В этом периоде нет купонных выплат или погашений по сохранённому расписанию.</p>';
+ sheet(`<h3>${title}</h3><div class="tot"><span class="k">${events.length} событий · сумма</span><b class="money pos">${cash(total)}</b></div><div class="panel">${rows}</div><div class="acts"><button class="btn" data-a="close">Закрыть</button></div>`);
+}
+function premiumRender(){const y=scrollY,views={home:premiumHome,pay:premiumPay,bonds:premiumBonds,stats:premiumStats,pen:premiumPension,set:premiumSettings};$('#app').innerHTML=(views[tab]||premiumHome)();$('#nav').innerHTML=[['home','Главная'],['pay','Выплаты'],['bonds','Облигации'],['stats','Статистика'],['pen','Пенсия'],['set','Настройки']].map(([k,l])=>`<button data-a="go" data-id="${k}" class="${tab===k?'on':''}" aria-label="${l}">${svg(k==='set'?'set':k)}<span>${l}</span></button>`).join('');if(tab!=='bonds'){bondQuery=''}scrollTo(0,y)}
+// Replace presentation functions only; financial calculations, state keys, Telegram sync and pension engine stay intact.
+home=premiumHome;pay=premiumPay;bonds=premiumBonds;statsView=premiumStats;settings=premiumSettings;bondSheet=premiumBondSheet;render=premiumRender;ACT.bond=premiumBondSheet;
+ACT.month=id=>{payMonth=new Date(payMonth.getFullYear(),payMonth.getMonth()+Number(id),1);render()};
+ACT.couponinfo=couponInfo;ACT.redemptioninfo=redemptionInfo;ACT.sell=sellForm;ACT.savesell=saveSell;
+ACT.theme=id=>{if(id==='system')delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=id;try{S.theme=id;save();}catch(e){}theme();render();};
+// Theme choice is persisted independently without changing the portfolio schema.
+const originalTheme=theme;theme=function(){try{if(S&&S.theme&&S.theme!=='system')document.documentElement.dataset.theme=S.theme;else if(tg&&tg.colorScheme)document.documentElement.dataset.theme=tg.colorScheme;const bg=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();if(tg){tg.setHeaderColor(bg);tg.setBackgroundColor(bg);tg.setBottomBarColor&&tg.setBottomBarColor(bg)}}catch(e){}};
+document.addEventListener('input',e=>{if(e.target.id==='bondSearch'){bondQuery=e.target.value;const pos=e.target.selectionStart;render();const x=$('#bondSearch');if(x){x.focus();x.setSelectionRange(pos,pos)}}});
+document.addEventListener('change',e=>{if(e.target.id==='bondSort'){bondSort=e.target.value;render()}if(e.target.id==='payMonthSelect'){payMonth=new Date(payMonth.getFullYear(),Number(e.target.value),1);render()}if(e.target.id==='payYearSelect'){payMonth=new Date(Number(e.target.value),payMonth.getMonth(),1);render()}if(e.target.id==='statsYear'){window.__obStatsYear=Number(e.target.value);render()}if(e.target.id==='statsMonth'){window.__obStatsMonth=e.target.value;render()}});
+document.addEventListener('click',e=>{const period=e.target.closest('[data-chart-key]');if(period){e.stopImmediatePropagation();showChartPeriod(period.getAttribute('data-chart-key'));return}const ch=e.target.closest('.ch');if(!ch||$('#sh').classList.contains('on'))return;const svgEl=ch.querySelector('svg');if(!svgEl)return;const label=svgEl.getAttribute('aria-label')||'График';sheet(`<h3>${esc(label)}</h3><div class="chart-card">${svgEl.outerHTML}</div><p class="note">График построен по данным, сохранённым в приложении.</p><div class="acts"><button class="btn" data-a="close">Закрыть</button></div>`)});
+
+/* ---------- boot ---------- */
+function theme(){try{if(tg&&tg.colorScheme)document.documentElement.dataset.theme=tg.colorScheme;const bg=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();tg.setHeaderColor(bg);tg.setBackgroundColor(bg);tg.setBottomBarColor&&tg.setBottomBarColor(bg)}catch(e){}}
+if(tg){try{tg.ready();tg.expand();tg.disableVerticalSwipes&&tg.disableVerticalSwipes();tg.BackButton.onClick(closeSheet);tg.onEvent('themeChanged',theme)}catch(e){}theme()}
+if(LOCKED){document.body.innerHTML='';throw 0}
+load();theme();render();
+{const go=()=>{const c=auto();render();runNotify(c)};
+ if(CS)cloudLoad(r=>{if(r&&(r.ts||0)>(S.ts||0)){S=r;fix();try{localStorage.setItem(LK,JSON.stringify(S))}catch(e){}}go()});else go()}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){const c=auto();render();runNotify(c)}});
+</script></body></html>
